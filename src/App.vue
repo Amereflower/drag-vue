@@ -14,10 +14,10 @@ export default {
     appDrag
   },
   created: function() {
-    // this.treeData=[];
-    // this.getcourse();
-    // this.getmodule();
-    this.treeData=[]
+    this.treeData=[];
+    this.getcourse();
+    this.getmodule();
+    // this.treeData=[]
     this.totree();
   },
   methods: {
@@ -51,7 +51,6 @@ export default {
       //首先将课程全部依靠module_eid加入到对应module下面
       //然后根据模块的mod-parent_id渲染树状的模块列表
 
-	  //注意后端不会返回的元素，比如myclass，用来控制显示接替形状的
 	  //原来的参数cou_parent_id，实际是mod_parent_id，在appDrag记得换
 
       for (let j = 0; j < this.moduledata.length; j++) {
@@ -62,33 +61,55 @@ export default {
       for (let i = 0; i < this.coursedata.length; i++) {
 		this.coursedata[i]["normal"]=true;
 		this.coursedata[i]["editable"]=false;
-    let alltime = this.coursedata[i].reduce(
-      (sum,e) => sum+Number(e.total_hour||0),
-      0
-    );
-    let allcredits = this.coursedata[i].reduce(
-      (sum,e) => sum+Number(e.credits||0),
-      0
-    )
-    this.moduledata[this.coursedata[i].mod_parent_id - 1]["childcredits"]=allcredits;
-    this.moduledata[this.coursedata[i].mod_parent_id - 1]["childtime"]=alltime;
-    
-    // console.log(this.coursedata[i]);
-    // console.log("#######################"+typeof(this.coursedata[i]))
-
         this.moduledata[this.coursedata[i].mod_parent_id - 1].classTable.push(
           this.coursedata[i],
         );
       }
+      for(let i=0;i<this.moduledata.length;i++) {
+        let alltime = this.moduledata[i].classTable.reduce(
+          (sum,e) => sum+Number(e.total_hour||0),
+          0
+        );
+        let allcredits = this.moduledata[i].classTable.reduce(
+          (sum,e) => sum+Number(e.credits||0),
+          0
+        )
+        this.moduledata[i]["childcredits"]=allcredits;
+        this.moduledata[i]["childtime"]=alltime;
+        if(alltime>0)
+           this.transferData(i,alltime,allcredits);
+
+      }//将每个模块的分数上传，仅仅是自己模块，不包括自己子模块的模块分，比如计算机科学与技术就是0
 
 	  this.testdata.push(this.moduledata[0]);
 	  this.testdata=this.getChildTreeData(this.moduledata,this.testdata);
-	  console.log(this.testdata)
-	  this.treeData=[]
-	  console.log(this.treeData)
-	
+
 	  this.treeData=this.testdata
+
     },
+     unique (arr) {
+  return Array.from(new Set(arr))
+},
+    transferData(index,addtime,addcredits){
+
+        let parid=this.moduledata[index].mod_parent_id;
+        if(parid===null)
+          ;
+        else {
+          let par_mod_id
+          for (let j = 0; j < this.moduledata.length; j++) {
+            if (this.moduledata[j].module_eid === parid) {
+              this.moduledata[j].childcredits += addcredits
+              this.moduledata[j].childtime += addtime
+              par_mod_id = j
+            }
+          }
+
+          if (this.moduledata[par_mod_id].mod_parent_id !== null) {
+            this.transferData(par_mod_id,addtime,addcredits)
+          }
+        }
+    },//自下向上传递自己的模块分数
 	getChildTreeData(tableData, treeData) {
             //先遍历treeData,找到每个节点的子节点
             treeData.forEach(item => {
@@ -99,11 +120,11 @@ export default {
                             name: item2.name,
                             mod_parent_id: item2.mod_parent_id,
                             expect_score: item2.expect_score,
-							classTable:item2.classTable,
-                            childArr: []
+							              classTable:item2.classTable,
+                            childArr: item2.childArr,
+                            childcredits:item2.childcredits,
+                            childtime:item2.childtime
                         })
-                        //删除已经push到treeData中的节点
-                        tableData.splice(tableData.indexOf(item2), 1)
                     }
                 })
                 //递归调用
@@ -212,7 +233,7 @@ export default {
         {
           module_eid: 13,
           name: "大学英语精读1",
-          mod_parent_id: 7,
+          mod_parent_id: 27,
           expect_score: null,
           course_eid: 91,
           code: "A110112*",
@@ -235,7 +256,7 @@ export default {
         {
           module_eid: 13,
           name: "大学英语听说1",
-          mod_parent_id: 7,
+          mod_parent_id: 27,
           expect_score: null,
           course_eid: 92,
           code: "A110118*",
@@ -258,7 +279,7 @@ export default {
         {
           module_eid: 13,
           name: "大学英语精读2",
-          mod_parent_id: 7,
+          mod_parent_id: 27,
           expect_score: null,
           course_eid: 93,
           code: "A110114*",
@@ -281,7 +302,7 @@ export default {
         {
           module_eid: 13,
           name: "大学英语听说2",
-          mod_parent_id: 7,
+          mod_parent_id: 27,
           expect_score: null,
           course_eid: 94,
           code: "A110119*",
@@ -902,7 +923,7 @@ export default {
         {
           module_eid: 19,
           name: "嵌入式系统原理",
-          mod_parent_id: 11,
+          mod_parent_id: 20,
           expect_score: null,
           course_eid: 124,
           code: "B0504720",
@@ -925,7 +946,7 @@ export default {
         {
           module_eid: 19,
           name: "嵌入式系统课程设计",
-          mod_parent_id: 11,
+          mod_parent_id: 20,
           expect_score: null,
           course_eid: 125,
           code: "S05*****",
@@ -948,7 +969,7 @@ export default {
         {
           module_eid: 19,
           name: "计算机系统结构",
-          mod_parent_id: 11,
+          mod_parent_id: 21,
           expect_score: null,
           course_eid: 126,
           code: "B0504070",
@@ -971,7 +992,7 @@ export default {
         {
           module_eid: 19,
           name: "并行与分布式处理系统",
-          mod_parent_id: 11,
+          mod_parent_id: 21,
           expect_score: null,
           course_eid: 127,
           code: "B0501410",
@@ -994,7 +1015,7 @@ export default {
         {
           module_eid: 19,
           name: "Linux系统及应用",
-          mod_parent_id: 11,
+          mod_parent_id: 21,
           expect_score: null,
           course_eid: 128,
           code: "B0505130",
@@ -1017,7 +1038,7 @@ export default {
         {
           module_eid: 20,
           name: "物联网工程导论",
-          mod_parent_id: 11,
+          mod_parent_id: 22,
           expect_score: null,
           course_eid: 129,
           code: "B050801s",
@@ -1040,7 +1061,7 @@ export default {
         {
           module_eid: 20,
           name: "传感器与传感网",
-          mod_parent_id: 11,
+          mod_parent_id: 22,
           expect_score: null,
           course_eid: 130,
           code: "B050816s",
@@ -1063,7 +1084,7 @@ export default {
         {
           module_eid: 20,
           name: "物联网硬件基础",
-          mod_parent_id: 11,
+          mod_parent_id: 22,
           expect_score: null,
           course_eid: 131,
           code: "B0501320",
@@ -1086,7 +1107,7 @@ export default {
         {
           module_eid: 20,
           name: "网络通信系统",
-          mod_parent_id: 11,
+          mod_parent_id: 22,
           expect_score: null,
           course_eid: 132,
           code: "B050807s",

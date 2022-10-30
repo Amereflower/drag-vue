@@ -4,14 +4,22 @@
       <draggable id=item.module_eid group="my-group"  v-for="(item, index) in treeData"
           :key="index" @choose="filechoose(item,item.cou_parent_id)" @add="fileend(item,item.cou_parent_id)" handle=".icon-mulu1">
         <el-collapse-item
-         
+
           :class="item.myclass"
         >
+
+
           <template #title>
             <div><span class="iconfont icon-mulu1"></span>{{ item.name }}</div>
           </template>
 
           <div style="text-align: left">
+
+            <el-popover
+              placement="right"
+              width="200px"
+              trigger="hover">
+            <div>
             <el-button
               type="primary"
               size="small"
@@ -19,6 +27,27 @@
               plain
               >添加子目录</el-button
             >
+
+            <el-button
+              type="primary"
+              size="small"
+              @click="fromshow = true"
+              plain
+              >添加课程</el-button
+            >
+            <el-button
+              type="danger"
+              size="small"
+              @click="delfile(item)"
+              plain
+              >删除此目录</el-button
+            >
+            </div>
+              <i class="el-icon-edit" slot="reference"></i>
+<!--              <el-button size="small" slot="reference" type="primary" icon="el-icon-edit" circle></el-button>-->
+            </el-popover>
+
+
             <el-dialog title="新建目录" :visible.sync="fileshow">
               <el-form :model="form">
                 <el-form-item label="名称" :label-width="formLabelWidth">
@@ -40,24 +69,10 @@
               <div slot="footer" class="dialog-footer">
                 <el-button @click="fileshow = false">取 消</el-button>
                 <el-button type="primary" @click="addfile(item)"
-                  >确 定</el-button
+                >确 定</el-button
                 >
               </div>
             </el-dialog>
-            <el-button
-              type="primary"
-              size="small"
-              @click="fromshow = true"
-              plain
-              >添加课程</el-button
-            >
-            <el-button
-              type="danger"
-              size="small"
-              @click="delfile(item)"
-              plain
-              >删除此目录</el-button
-            >
             <el-dialog title="编辑课程信息" :visible.sync="fromshow">
               <el-form :model="form">
                 <el-form-item label="课程代码" :label-width="formLabelWidth">
@@ -239,7 +254,7 @@
             v-for="element in item.classTable"
               :key="element.id"
               @choose="whenchoose(element,item)"
-            @add="whenend(item)"  
+            @add="whenend(item)"
           >
           <!-- 不知道为什么，但这里确实是add事件才能发生 -->
             <div
@@ -486,13 +501,28 @@
 
                 <el-divider direction="vertical" />
 
-                <el-button
-                  type="danger"
-                  size="small"
-                  @click="delmsg(item, element)"
-                  plain
+                <el-popover
+                  placement="right"
+                  title="警告"
+                  width="200"
+                  trigger="hover"
+                  >
+                  <p>删除后无法恢复数据，确认删除吗？</p>
+                  <div style="text-align: right; margin: 0">
+                    <el-button size="mini" type="text" >取消</el-button>
+                    <el-button type="primary" size="mini" @click="delmsg(item, element)">确定</el-button>
+                  </div>
+                  <el-button
+                    slot="reference"
+                    type="danger"
+                    size="small"
+
+                    plain
                   >删除</el-button
-                >
+                  >
+                </el-popover>
+
+
               </div>
             </div>
           </draggable>
@@ -560,45 +590,24 @@ export default {
     },
     countcredit(item) {
       return () => {
-        if(item.classTable.length===0)
-      return 0+item.childcredits;
-        let credit = item.classTable.reduce(
-          (sum, e) => sum + Number(e.credits || 0),
-          0
-        );
-        return credit+item.childcredits;
+        return item.childcredits;
       };
     },
     caccredit(item) {
-      if(item.classTable.length===0)
-      return 0+item.childcredits;
-      let credit = item.classTable.reduce(
-        (sum, e) => sum + Number(e.credits || 0),
-        0
-      );
+
+
       // let max = item.expect_score;
       let max = 200;
-      return Math.round(((credit+item.childcredits) * 100) / max);
+      return Math.round((item.childcredits* 100) / max);
     },
     cactime(item) {
-      if(item.classTable.length===0)
-      return 0+item.childtime;
-      let credit = item.classTable.reduce(
-        (sum, e) => sum + Number(e.total_hour || 0),
-        0
-      );
-      let max = 5000; //每个模块也有一个最大学时数，也需要设置或返回。目录出设置
-      return Math.round(((credit+item.childtime) * 100) / max);
+
+      let max = 4000; //每个模块也有一个最大学时数，也需要设置或返回。目录出设置
+      return Math.round((item.childtime * 100) / max);
     },
     counttime(item) {
       return () => {
-        if(item.classTable.length===0)
-      return 0+item.childtime;
-        let credit = item.classTable.reduce(
-          (sum, e) => sum + Number(e.total_hour || 0),
-          0
-        );
-        return credit+item.childtime;
+        return item.childtime
       };
     },
     adddata(item, form) {
@@ -628,6 +637,9 @@ export default {
         on_group: null,
         cou_parent_id: 13,
       });
+      item.childcredits+=form.credits;
+      item.childtime+=form.total_hour;
+      // this.transgerData()  //将新添加的课程分数向上传递
       this.fromshow = false;
       this.form = [];
     },
@@ -657,7 +669,7 @@ export default {
       // console.log(item.classTable)  并没有被改变，但是拖动后再次拖动会改变，为什么
     },
     whenend(item) {
-      
+
         console.log("新目录是"+item.module_eid)
     },
     filechoose(item,id) {
