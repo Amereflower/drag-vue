@@ -1,0 +1,37 @@
+{
+  "id": "3725422",
+  "name": "培养计划",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "1206403",
+      "name": "设计目录",
+      "font_class": "shejimulu",
+      "unicode": "e62b",
+      "unicode_decimal": 58923
+    },
+    {
+      "icon_id": "5835472",
+      "name": "目录",
+      "font_class": "mulu1",
+      "unicode": "e60f",
+      "unicode_decimal": 58895
+    },
+    {
+      "icon_id": "2076262",
+      "name": "目录",
+      "font_class": "mulu",
+      "unicode": "e890",
+      "unicode_decimal": 59536
+    },
+    {
+      "icon_id": "20075869",
+      "name": "手动抓取数据",
+      "font_class": "shoudongzhuaqushuju",
+      "unicode": "e648",
+      "unicode_decimal": 58952
+    }
+  ]
+}
