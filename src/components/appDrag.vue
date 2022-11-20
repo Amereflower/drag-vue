@@ -1,29 +1,26 @@
 <template>
   <div class="jianju">
     <el-collapse>
-      <draggable id=item.module_eid group="my-group"  v-for="(item, index) in treeData"
-          :key="index" @choose="filechoose(item,item.cou_parent_id)" @add="fileend(item,item.cou_parent_id)" handle=".icon-mulu1">
-        <el-collapse-item
-
-          :class="item.myclass"
-        >
+      <div v-for="(item, index) in treeData">
+      <draggable   id=item.module_eid group="my-group"
+                 :key="index"  @choose="filechoose(item,item.mod_parent_id)" @add="fileend(item,item.mod_parent_id)" handle=".icon-mulu1">
+        <el-collapse-item>
 
 
           <template #title>
             <div><span class="iconfont icon-mulu1"></span>{{ item.name }}</div>
           </template>
-
           <div style="text-align: left">
 
             <el-popover
-              placement="right"
+              placement="bottom"
               width="200px"
               trigger="hover">
             <div>
             <el-button
               type="primary"
               size="small"
-              @click="fileshow = true"
+              @click="addFilePost(item)"
               plain
               >添加子目录</el-button
             >
@@ -31,7 +28,7 @@
             <el-button
               type="primary"
               size="small"
-              @click="fromshow = true"
+              @click="ifitem(item)"
               plain
               >添加课程</el-button
             >
@@ -43,13 +40,12 @@
               >删除此目录</el-button
             >
             </div>
-              <i class="el-icon-edit" slot="reference"></i>
-<!--              <el-button size="small" slot="reference" type="primary" icon="el-icon-edit" circle></el-button>-->
+              <el-button icon="el-icon-edit"slot="reference" size="small">编辑</el-button>
             </el-popover>
 
 
-            <el-dialog title="新建目录" :visible.sync="fileshow">
-              <el-form :model="form">
+            <el-dialog title="新建目录" :visible="fileshow" append-to-body>
+              <el-form :model="newfile">
                 <el-form-item label="名称" :label-width="formLabelWidth">
                   <el-input
                     v-model="newfile.name"
@@ -68,12 +64,13 @@
               </el-form>
               <div slot="footer" class="dialog-footer">
                 <el-button @click="fileshow = false">取 消</el-button>
-                <el-button type="primary" @click="addfile(item)"
+                <el-button type="primary" @click="addfile()"
                 >确 定</el-button
                 >
               </div>
             </el-dialog>
-            <el-dialog title="编辑课程信息" :visible.sync="fromshow">
+
+            <el-dialog title="新建课程信息" :visible.sync="fromshow" append-to-body>
               <el-form :model="form">
                 <el-form-item label="课程代码" :label-width="formLabelWidth">
                   <el-input v-model="form.code" autocomplete="off"></el-input>
@@ -187,31 +184,31 @@
               </el-form>
               <div slot="footer" class="dialog-footer">
                 <el-button @click="fromshow = false">取 消</el-button>
-                <el-button type="primary" @click="adddata(item, form)"
+                <el-button type="primary" @click="adddata(form)"
                   >确 定</el-button
                 >
               </div>
             </el-dialog>
 
-            <span class="census"
-              >学时数<el-progress
-                :text-inside="true"
-                :stroke-width="20"
-                :percentage="cactime(item)"
-                color="#068AC7"
-                :format="counttime(item)"
-              ></el-progress
-            ></span>
+            <el-popover
+              placement="top"
+              width="150"
+              trigger="hover">
+              <div class="static-credits"
+              >学时数
+                <span class="static-num">{{counttime(item)}}</span>
+            </div>
 
-            <span class="census"
-              >学分数<el-progress
-                :text-inside="true"
-                :stroke-width="20"
-                :percentage="caccredit(item)"
-                color="#068AC7"
-                :format="countcredit(item)"
-              ></el-progress
-            ></span>
+              <div class="static-credits"
+              >学分数
+                <span class="static-b-num">{{ countcredit(item)}}</span>
+            </div>
+              <el-button icon="el-icon-s-data" slot="reference" size="small">统计</el-button>
+            </el-popover>
+
+
+
+
           </div>
 
           <div v-if="item.classTable.length>0" class="tablehead" style="margin-top: 8px">
@@ -246,6 +243,8 @@
             <el-divider direction="vertical" />
             <label class="Tremarks"><span>备注</span> </label>
             <el-divider direction="vertical" />
+            <label class="Ttag"><span>标签</span> </label>
+            <el-divider direction="vertical" />
           </div>
 
           <draggable
@@ -267,13 +266,19 @@
                   <span>{{ element.code }}</span>
                 </label>
                 <el-divider direction="vertical" />
+                <el-tooltip effect="light" placement="bottom">
+                  <div slot="content">{{element.name}}</div>
                 <label class="coursename"
                   ><span>{{ element.name }}</span>
                 </label>
+                </el-tooltip>
                 <el-divider direction="vertical" />
+                <el-tooltip effect="light" placement="bottom">
+                  <div slot="content">{{element.englishName}}</div>
                 <label class="courseenglishname"
                   ><span>{{ element.englishName }}</span>
                 </label>
+                </el-tooltip>
 
                 <span>
                   <el-divider direction="vertical" />
@@ -323,6 +328,22 @@
                 <label class="remarks"
                   ><span>{{ element.remark }}</span>
                 </label>
+                <el-divider direction="vertical" />
+                <el-select
+                  size="mini"
+                  v-model="element.tag"
+                  multiple
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="请选择课程标签">
+                  <el-option
+                    v-for="item in allTags"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value">
+                  </el-option>
+                </el-select>
 
                 <el-divider direction="vertical" />
                 <!-- @click="editmsg(element)" 在下方-->
@@ -501,26 +522,22 @@
 
                 <el-divider direction="vertical" />
 
-                <el-popover
-                  placement="right"
-                  title="警告"
-                  width="200"
-                  trigger="hover"
-                  >
-                  <p>删除后无法恢复数据，确认删除吗？</p>
-                  <div style="text-align: right; margin: 0">
-                    <el-button size="mini" type="text" >取消</el-button>
-                    <el-button type="primary" size="mini" @click="delmsg(item, element)">确定</el-button>
-                  </div>
+
+                <el-popconfirm
+                  title="删除后无法恢复数据，确认删除吗？"
+                  @confirm="delmsg(item,element)"
+                  @cancel="notdelmsg(element)"
+                >
                   <el-button
                     slot="reference"
                     type="danger"
                     size="small"
-
                     plain
                   >删除</el-button
                   >
-                </el-popover>
+                </el-popconfirm>
+
+
 
 
               </div>
@@ -529,13 +546,15 @@
 
           <!-- 嵌套自身 -->
           <div class="children" v-if="item.childArr">
-            <appDrag :treeData="item.childArr"></appDrag>
+            <appDrag :treeData="item.childArr" :drop="drop"></appDrag>
           </div>
           <!-- 嵌套自身 -->
         </el-collapse-item>
       </draggable>
+      </div>
     </el-collapse>
   </div>
+
 </template>
 
 <script>
@@ -545,7 +564,25 @@ import draggable from "vuedraggable";
 
 export default {
   name: "appDrag",
-  props: ["treeData"],
+  // model:{
+  //     prop:"treeData",
+  //     event:"change"
+  // },
+  props: {
+    // 这将允许 `value` 属性用于其他用途
+    value: [],
+    // 使用 `title` 代替 `value` 作为 model 的 prop
+    treeData: {
+      type: [],
+      default: []
+    },
+    drop:{
+      type:{},
+      default:{}
+    }
+  },
+  mounted() {
+  },
   setup() {
     const activeNames = ref(["1"]);
     // const handleChange = (val) => {
@@ -557,61 +594,80 @@ export default {
     };
   },
   methods: {
-    changeTreeData(nowTreeData) {
-      this.$emit("update:modelValue", nowTreeData);
+    showInput(e) {
+      e.inputVisible = true;
+      // this.$nextTick(_ => {
+      //   this.$refs.saveTagInput.$refs.input.focus();
+      // });
+    },
+    handleInputConfirm(e) {
+      let inputValue = e.inputValue;
+      if (inputValue) {
+        e.tag.push(inputValue);
+      }
+      e.inputVisible = false;
+      e.inputValue = '';
+    },
+    handleClose(tag,dynamicTags) {
+      dynamicTags.splice(dynamicTags.indexOf(tag), 1);
+      //同步修改，传进来后修改相当于对elemet.tag做了修改
+    },
+    ifitem(item){
+      //添加课程的表单，提交
+      console.log(item)
+      console.log("以上就是那样的花朵")
+      this.addCourseParentId=item;
+      this.fromshow=true
+      this.$forceUpdate()
     },
     editmsg(element) {
       //点击修改按钮后更改相应值
       // console.log(element);
       element.editable = true;
+      this.$forceUpdate()
     },
     savemsg(element) {
       element.editable = false;
+      this.$forceUpdate()
+    },
+    notdelmsg(element){
+      element.delview=false;
     },
     delmsg(item, element) {
       //删除此课程
+
       console.log(item.classTable)
-      item.classTable.map((val, i) => {
-        if (val.course_eid === element.course_eid) {
-          item.classTable.splice(i, 1);
-          console.log('删除成功！')
+      for(let index=0;index<item.classTable.length;index++)
+      {
+        if (item.classTable[index].code === element.code) {
+          item.classTable.splice(index, 1);
+          this.$forceUpdate();
+          return;
         }
-      });
+      }
+
       //拖拽后实际上treedata没有更新，但是可以获取到在页面上的位置从而与后端发请求，再数据结构做改变
 
       // item.find(item => item.course_eid==element.course_eid);
-
       // console.log(element.course_eid);
       // console.log(item.expect_score)
-      console.log(this.treeData)
+      // console.log(this.treeData)
     },
-    findcourse(id) {
-      return id;
-    },
+
     countcredit(item) {
-      return () => {
         return item.childcredits;
-      };
-    },
-    caccredit(item) {
-
-
-      // let max = item.expect_score;
-      let max = 200;
-      return Math.round((item.childcredits* 100) / max);
-    },
-    cactime(item) {
-
-      let max = 4000; //每个模块也有一个最大学时数，也需要设置或返回。目录出设置
-      return Math.round((item.childtime * 100) / max);
     },
     counttime(item) {
-      return () => {
         return item.childtime
-      };
     },
-    adddata(item, form) {
+    adddata( form) {
       //既要item也要from，
+      const item=this.addCourseParentId
+      console.log("item is")
+      console.log(item)
+      console.log(form)
+      console.log("over")
+      this.$axios.post
       item.classTable.push({
         editable: false,
         normal: true,
@@ -641,44 +697,96 @@ export default {
       item.childtime+=form.total_hour;
       // this.transgerData()  //将新添加的课程分数向上传递
       this.fromshow = false;
-      this.form = [];
+      this.$forceUpdate();
+      // this.form = [];
     },
-    addfile(item) {
-      console.log(item);
-      console.log("AAAAAAAAAAAAAA");
+    addFilePost(item){
+      this.addFileItem=item;
+      this.fileshow=true;
+
+    },
+    addfile() {
+      const item = this.addFileItem;
       item.childArr.push({
         module_eid: 255,
         name: this.newfile.name,
         expect_score: this.newfile.expect_score,
         classTable: [],
         childArr: [],
+        childcredits:0,
+        childtime:0,
         mod_parent_id:item.module_eid
       });
-      this.newfile = [];
+
+      // this.newfile = [];
       this.fileshow = false;
+      this.$forceUpdate()
+      //奇迹
+      return
       // 添加子目录、目录的各个属性，用弹出框提示用户输入
     },
     start() {
       console.log("i ma start drag right now!!!");
     },
-    startt() {
-      console.log("AAAAAAAAAAAAAAAAA");
-    },
     whenchoose(element,item) {
-      console.log(element.module_eid+" 从目录 [" + item.module_eid+"] 被拿走了 ");
+      console.log(element)
+      console.log(element.code+" 从目录 [" + item.module_eid+"] 被拿走了 ");
+
+      this.drop.dropcourse.course_eid=element.course_eid
+
       // console.log(item.classTable)  并没有被改变，但是拖动后再次拖动会改变，为什么
     },
     whenend(item) {
-
-        console.log("新目录是"+item.module_eid)
+        this.drop.dropcourse.cou_parent_id=item.module_eid;
+        const courseparam={
+          courses_eid: this.drop.dropcourse.course_eid.toString(),
+          cou_parent_id: this.drop.dropcourse.cou_parent_id.toString()
+        }
+        //发送课程修改请求
+        this.$axios.post("http://trainingplan.rzcloud.online/dropcourse",(courseparam))
+          .then(res => {
+            console.log(res.data.data)
+          })
+          .catch(error => {
+            console.log(error)
+          })
+        // console.log("的新目录是"+item.module_eid)
     },
     filechoose(item,id) {
-        console.log("从"+id);
+        console.log(item.module_eid+"从"+id);
+      // this.treeData.dropmodule.module_eid=item.module_eid
+      this.drop.dropmodule.module_eid=item.module_eid
+      console.log(this.drop)
+      this.$forceUpdate()
+
+        return
     },
+
     fileend(item,id) {
+
         // console.log(item.log)
         // console.log("after id is"+id)
+      // this.treeData.dropmodule.mod_parent_id=id;
+      this.drop.dropmodule.mod_parent_id=id;
+
+      const dropparams={
+        module_eid:this.drop.dropmodule.module_eid.toString(),
+        mod_parent_id: this.drop.dropmodule.mod_parent_id.toString()
+      }
+
+      console.log(this.dropmodule)
+
+      //应该是异步的问题。
+      this.$axios.post("http://trainingplan.rzcloud.online/dropmodule",(dropparams))
+        .then(res => {
+          console.log(res.data.data)
+        })
+        .catch(error =>{
+          console.log(error)
+        })
         console.log("移动到"+id)
+
+      console.log(this.drop)
     },
     delfile(item) {
       console.log(item);
@@ -686,6 +794,39 @@ export default {
   },
   data() {
     return {
+      addCourseParentId:null,
+      addFileItem:null,
+      dropcourse:{
+        course_eid:0,
+        cou_parent_id: 0
+      },
+      dropmodule:{
+        module_eid: 0,
+        mod_parent_id:0
+      },
+      MODULE_EID:0,
+      MOD_PAR_ID:0,
+      allTags:[{
+        value:'a',
+        label:'a'
+      },
+        {
+          value:'b',
+          label:'b'
+        },
+        {
+          value:'c',
+          label:'c'
+        },
+        {
+          value:'d',
+          label:'d'
+        },
+        {
+          value:'e',
+          label:'e'
+        }],
+      thisismsg:'121',
       form: {
         code: "",
         name: "",
@@ -702,8 +843,8 @@ export default {
         start: "",
         remark: null,
       },
+      fromshow:false,
       fileshow: false,
-      fromshow: false,
       formLabelWidth: "120px",
       newfile: {
         name: "",
@@ -811,7 +952,7 @@ body {
 
 .coursename {
   padding-top: 8px;
-  width: 108px;
+  width: 73px;
   text-align: left;
   display: inline-block;
   text-overflow: ellipsis; /*让截断的文字显示为点点。还有一个值是clip意截断不显示点点*/
@@ -821,7 +962,7 @@ body {
 
 .courseenglishname {
   padding-top: 8px;
-  width: 153px;
+  width: 103px;
   text-align: left;
   display: inline-block;
   text-overflow: ellipsis; /*让截断的文字显示为点点。还有一个值是clip意截断不显示点点*/
@@ -912,7 +1053,7 @@ label.move {
 }
 
 .el-select {
-  width: 150px;
+  /*width: 150px;*/
   text-align: center;
 }
 
@@ -943,10 +1084,10 @@ label.move {
   width:57px;
 }
 .Tcoursename {
-  width: 115px;
+  width: 80px;
 }
 .Tcourseenglishname {
-  width: 160px;
+  width: 110px;
 }
 .Tcredit,
 .Ttotalhours,
@@ -962,6 +1103,9 @@ label.move {
 .Ttime {
   width: 68px;
 }
+.Ttag {
+  width :209px;
+}
 label.Tmove {
   width: 123px;
 }
@@ -969,10 +1113,19 @@ label.Tmove {
   width: 50%;
   margin-left: 8px;
 }
-.census {
+.static-credits {
   display: flex;
   margin: 8px;
 }
+.static-num{
+  color:#5CB87A;
+  margin-left: 8px;
+}
+.static-b-num{
+  color:#409EFF;
+  margin-left: 8px;
+}
+
 .el-form-item {
   margin-bottom: 8px;
 }
@@ -1002,7 +1155,26 @@ label.Tmove {
   cursor:move;
 } */
 .jianju {
-  margin-left:30px
+  margin-left:20px
+}
+
+.el-tag + .el-tag {
+  margin-left: 10px;
+}
+.button-new-tag {
+  margin-left: 10px;
+  height: 32px;
+  line-height: 30px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.input-new-tag {
+  width: 90px;
+  margin-left: 10px;
+  vertical-align: bottom;
+}
+.el-input--mini{
+  height: 28px
 }
 /* 用嵌套递归去规定 */
 </style>

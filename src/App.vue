@@ -1,7 +1,38 @@
 <template>
   <div id="app">
-    <appDrag :treeData="treeData"></appDrag>
-    <el-button style="margin-top:10px" @click="exportExcel">导出Excel</el-button>
+
+
+    <el-menu  class="el-menu-demo" mode="horizontal" @select="changePage">
+      <el-submenu index="4">
+        <template slot="title">切换培养计划</template>
+        <el-menu-item index="2">计算机科学与技术</el-menu-item>
+        <el-menu-item index="2-2">allTranPlan</el-menu-item>
+        <el-menu-item index="2-3">v-for</el-menu-item>
+      </el-submenu>
+    </el-menu>
+    <div class="line"></div>
+   <el-button style="margin-top:10px;float:left" size="small" @click="exportExcel" v-if="showIndex==2" >导出Excel</el-button>
+
+
+    <el-popover
+      placement="right"
+      title="标签统计"
+      width="200"
+      trigger="click"
+      >
+      <div v-for="tag in allTags">
+        <span style="width:200px;">{{tag}}学分数：</span>
+        {{creCacTag(tag)}}
+        <span style="width:200px;" >{{tag}}学时数：</span>
+        {{timeCacTag(tag)}}
+      </div>
+
+      <el-button slot="reference" size="small" style="margin-top:10px;float: left;margin-left: 10px">标签统计</el-button>
+    </el-popover>
+
+    <el-button @click="totree" size="small" style="float:left;margin-top:10px;margin-left: 10px">totree</el-button>
+
+    <appDrag  :treeData="treeData" :drop="drop" v-if="showIndex==2" style="clear:both"></appDrag>
   </div>
 </template>
 
@@ -16,13 +47,24 @@ export default {
     appDrag
   },
   created: function () {
-    this.treeData = []
-    this.getcourse()
-    this.getmodule()
-    // this.treeData=[]
-    this.totree()
+  this.getmodule();
   },
   methods: {
+    timeCacTag(tag){
+      //从后端查询所有的该tag的课程，加分返回数据
+      return 3;
+    },
+    creCacTag(tag){
+      return 5;
+    },
+    changePage(key) {
+      console.log(key)
+      this.showIndex=key;
+      console.log(this.showIndex+" is showIndex")
+    },
+    update(data){
+      alert('ok'+data)
+    },
     // 初始化processedTreeData
     initProcessedTreeData (treeData, layerNumber) {
       let processedTreeData = []
@@ -104,16 +146,84 @@ export default {
         }
       }
     },
+    getMergeList (excelList) {
+      let mergeList = []
+      let tempArr = []
+      let tempTempArr = []
+      let i
+      let j
+      // 先将excelList转置
+      for (i = 1; i < 18; i++) {
+        tempTempArr = []
+        for (j = 0; j < excelList.length; j++) {
+          tempTempArr.push(excelList[j][i])
+        }
+        tempArr.push(tempTempArr)
+      }
+      for (i = 0; i < tempArr.length; i++) {
+        j = 0
+        while (j < tempArr[i].length) {
+          if (tempArr[i][j] !== '') {
+            let tempObj = {}
+            tempObj.s = {c: i, r: j + 1}
+            let k = j + 1
+            while (tempArr[i][k] === '' && k < tempArr[i].length) {
+              k++
+            }
+            tempObj.e = {c: i, r: k}
+            mergeList.push(tempObj)
+            j = k
+          }
+        }
+      }
+      return mergeList
+    },
     getExcelList (processedTreeData) {
       let excelList = []
-      let tempArr = {'1': '', '2': '', '3': '', '4': '', '5': '', '6': '', '7': '', '8': '', '9': '', '10': '', '11': '', '12': '', '13': '', '14': '', '15': '', '16': '', '17': ''}
+      let tempArr = {
+        '1': '',
+        '2': '',
+        '3': '',
+        '4': '',
+        '5': '',
+        '6': '',
+        '7': '',
+        '8': '',
+        '9': '',
+        '10': '',
+        '11': '',
+        '12': '',
+        '13': '',
+        '14': '',
+        '15': '',
+        '16': '',
+        '17': ''
+      }
       for (let i = 0; i < processedTreeData[0].height; i++) {
         this.getEachRow(processedTreeData[0].childArr, i, tempArr)
         excelList.push(tempArr)
         if (excelList.length === 22) {
           console.log()
         }
-        tempArr = {'1': '', '2': '', '3': '', '4': '', '5': '', '6': '', '7': '', '8': '', '9': '', '10': '', '11': '', '12': '', '13': '', '14': '', '15': '', '16': '', '17': ''}
+        tempArr = {
+          '1': '',
+          '2': '',
+          '3': '',
+          '4': '',
+          '5': '',
+          '6': '',
+          '7': '',
+          '8': '',
+          '9': '',
+          '10': '',
+          '11': '',
+          '12': '',
+          '13': '',
+          '14': '',
+          '15': '',
+          '16': '',
+          '17': ''
+        }
       }
       return excelList
     },
@@ -152,9 +262,40 @@ export default {
       console.log('aaa', processedTreeData)
       let excelList = this.getExcelList(processedTreeData)
       console.log('excelList', excelList)
+      let mergeArr = this.getMergeList(excelList)
+      // let mergeArr = []
+      console.log('mergeArr', mergeArr)
       // let list = [{courseName: '语文', moduleName: '语文1', lessonName: '语文1-1'},
       //   {courseName: '语文', moduleName: '语文1', lessonName: '语文1-2'} ]
-      export2Excel(columns, excelList, '培养计划', [])
+      export2Excel(columns, excelList, '培养计划', mergeArr)
+    },
+    setNewCourse(Cparams)
+    {
+      this.$axios.post("http://trainingplan.rzcloud.online/startcourse",(Cparams))
+        .then(res=> {
+          //res.data.data
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    setNewModule(Mparams)
+    {
+
+    },
+    editCpar(cou_id,par_id){
+      const params={
+        "course_eid":cou_id,
+        "cou_parent_id":par_id
+      }
+      this.$axios.post("http://trainingplan.rzcloud.online/dropcourse",(params))
+        .then(res=> {
+          //res.data.data
+          console.log("已将"+cou_id+"的父亲改为"+par_id)
+        })
+        .catch(error =>{
+          console.log(error)
+        })
     },
     getcourse () {
       this.$axios({
@@ -170,36 +311,52 @@ export default {
         })
     },
     getmodule () {
+      this.moduledata=[];
       this.$axios({
         url: 'http://trainingplan.rzcloud.online/module',
         method: 'get'
       })
         .then(response => {
-          console.log(response.data)
-          this.moduledata = response.data
+          console.log('-----------这是接口返回的数据----------------')
+          console.log(response.data.data)
+          console.log('---------------------------')
+          this.moduledata = response.data.data
+          console.log(typeof(this.moduledata)+" this is type")
+          console.log(this.moduledata.length+" i am length ")
+          this.totree()
         })
         .catch(error => {
           console.log(error)
         })
     },
     totree () {
-      // 首先将课程全部依靠module_eid加入到对应module下面
-      // 然后根据模块的mod-parent_id渲染树状的模块列表
-
-	  // 原来的参数cou_parent_id，实际是mod_parent_id，在appDrag记得换
-
       for (let j = 0; j < this.moduledata.length; j++) {
-        this.moduledata[j]['classTable'] = []
-        this.moduledata[j]['childArr'] = []
+        // this.moduledata[j]['classTable'] = []
+        this.moduledata[j]['classTable'] = this.moduledata[j]['lessonArr'];
+        this.moduledata[j]['childArr'] = [];
+        // this.moduledata[j]['addCourseForm']={
+        //  //把el-dialog绑定到这里
+        // }
+        if(this.moduledata[j].lessonArr.length>0)
+        {
+          for(let i=0;i<this.moduledata[j].lessonArr.length;i++)
+          {
+            this.moduledata[j].lessonArr[i]['normal'] = true
+            this.moduledata[j].lessonArr[i]['editable'] = false
+            this.moduledata[j].lessonArr[i]['delview'] = false
+            //tag在这里处理
+            // this.moduledata[j].lessonArr[i]['tag']=this.moduledata[j].lessonArr[i]['tag'].split(';')
+            //把"tag":"favarite;hate"转变成"tag":[favarate,hate]的数组。
+            //删除的时候发请求+在这里删除页面上显示。
+
+          }
+
+        }
+
+
+        this.moduledata[j]['fromshow'] = false;//dialog无法连接到这里，因为是多个嵌套的复杂原因
       }
 
-      for (let i = 0; i < this.coursedata.length; i++) {
-        this.coursedata[i]['normal'] = true
-        this.coursedata[i]['editable'] = false
-        this.moduledata[this.coursedata[i].cou_parent_id - 1].classTable.push(
-          this.coursedata[i]
-        )
-      }
       for (let i = 0; i < this.moduledata.length; i++) {
         let alltime = this.moduledata[i].classTable.reduce(
           (sum, e) => sum + Number(e.total_hour || 0),
@@ -211,13 +368,36 @@ export default {
         )
         this.moduledata[i]['childcredits'] = allcredits
         this.moduledata[i]['childtime'] = alltime
-        if (alltime > 0) { this.transferData(i, alltime, allcredits) }
+        if (alltime > 0)
+          this.transferData(i, alltime, allcredits)
       }// 将每个模块的分数上传，仅仅是自己模块，不包括自己子模块的模块分，比如计算机科学与技术就是0
 
-	  this.testdata.push(this.moduledata[0])
-	  this.testdata = this.getChildTreeData(this.moduledata, this.testdata)
 
-	  this.treeData = this.testdata
+      console.log('+++++++++++这是修改过后的数据，但没有形成树状结构+++++++++++++++')
+      console.log(this.moduledata)
+      console.log('++++++++++++++++++++++++++')
+      if(this.moduledata[0]!==null)
+	      this.testdata.push(this.moduledata[0])
+      console.log(this.moduledata[0]+"这就是第一个treedata")
+	  this.treeData = this.getChildTreeData(this.moduledata, this.testdata)
+
+	  // this.treeData = this.testdata
+      console.log('******这是形成的树形结构******')
+      console.log(this.treeData)
+      console.log('************')
+
+
+      console.log("**************************")
+      console.log(this.treeData)
+      console.log("------------------------")
+      return
+    },
+    findNumner(n){
+      for(let i=0;i<this.moduledata.length;i++)
+      {
+        if(this.moduledata[i].module_eid===n)
+          return i;
+      }
     },
     unique (arr) {
       return Array.from(new Set(arr))
@@ -225,7 +405,7 @@ export default {
     transferData (index, addtime, addcredits) {
       let parid = this.moduledata[index].mod_parent_id
       if (parid === null)
-        ;
+        return;
       else {
         let par_mod_id
         for (let j = 0; j < this.moduledata.length; j++) {
@@ -251,7 +431,7 @@ export default {
               name: item2.name,
               mod_parent_id: item2.mod_parent_id,
               expect_score: item2.expect_score,
-							              classTable: item2.classTable,
+              classTable: item2.classTable,
               childArr: item2.childArr,
               childcredits: item2.childcredits,
               childtime: item2.childtime
@@ -259,6 +439,7 @@ export default {
           }
         })
         // 递归调用
+        console.log('我正在递归')
         this.getChildTreeData(tableData, item.childArr)
       })
       return treeData
@@ -266,2114 +447,454 @@ export default {
   },
   data () {
     return {
-      testdata: [],
-      coursedata: [
-        {
-          module_eid: 13,
-          name: '中国近现代史纲要',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 87,
-          code: 'A2301210',
-          englishName:
-            'The Outline of Modern and Contemporary History of China',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '42',
-          practice_hour: '6',
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '2',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '思想道德与法治',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 88,
-          code: 'A2301260',
-          englishName: 'Ideological and  Moral Cultivation and Rule of Law',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '42',
-          practice_hour: '6',
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '1',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '体育1',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 89,
-          code: 'T1301011',
-          englishName: 'Physical Education1',
-          credits: '1',
-          total_hour: '32',
-          teacher_hour: '4',
-          practice_hour: '28',
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '1',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '体育2',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 90,
-          code: 'T1301012',
-          englishName: 'Physical Education2',
-          credits: '1',
-          total_hour: '32',
-          teacher_hour: '4',
-          practice_hour: '28',
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '2',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '大学英语精读1',
-          mod_parent_id: 27,
-          expect_score: null,
-          course_eid: 91,
-          code: 'A110112*',
-          englishName: 'College English Intensive Reading1',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '1',
-          exam: 'X',
-          start: '1月16日',
-          remark: '注1',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '大学英语听说1',
-          mod_parent_id: 27,
-          expect_score: null,
-          course_eid: 92,
-          code: 'A110118*',
-          englishName: 'College English Listening ＆ Speaking1',
-          credits: '1',
-          total_hour: '16',
-          teacher_hour: '16',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '1',
-          exam: 'X',
-          start: '1月16日',
-          remark: '注1',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '大学英语精读2',
-          mod_parent_id: 27,
-          expect_score: null,
-          course_eid: 93,
-          code: 'A110114*',
-          englishName: 'College English Intensive Reading2',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '2',
-          exam: 'X',
-          start: '1月16日',
-          remark: '注1',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '大学英语听说2',
-          mod_parent_id: 27,
-          expect_score: null,
-          course_eid: 94,
-          code: 'A110119*',
-          englishName: 'College English Listening ＆Speaking2',
-          credits: '1',
-          total_hour: '16',
-          teacher_hour: '16',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '2',
-          exam: 'X',
-          start: '1月16日',
-          remark: '注1',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '高等数学A1',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 95,
-          code: 'A0714201',
-          englishName: 'Higher Mathematics A1',
-          credits: '5',
-          total_hour: '80',
-          teacher_hour: '80',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '1',
-          exam: 'X',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '高等数学A2',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 96,
-          code: 'A0714202',
-          englishName: 'Higher Mathematics A2',
-          credits: '5',
-          total_hour: '80',
-          teacher_hour: '80',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '2',
-          exam: 'X',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '线性代数',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 97,
-          code: 'A0714030',
-          englishName: 'Linear Algebra',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '48',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '1',
-          exam: 'X',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '大学物理1',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 98,
-          code: 'A0715011',
-          englishName: 'College Physics1',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '48',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '2',
-          exam: 'X',
-          start: '1月16日',
-          remark: '注2',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '物理学原理及工程应用1',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 99,
-          code: 'A0715051',
-          englishName: 'Physics Principle and Engineering Application 1',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '48',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '2',
-          exam: 'X',
-          start: '1月16日',
-          remark: '注2',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '大学生心理健康教育',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 100,
-          code: 'A2301250',
-          englishName: 'College Students Mental Health Education',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '28',
-          practice_hour: '4',
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '2',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 13,
-          name: '工程伦理',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 101,
-          code: 'A050163s',
-          englishName: 'Engineering Ethics',
-          credits: '1',
-          total_hour: '16',
-          teacher_hour: '16',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '2',
-          exam: 'C',
-          start: '1月16日',
-          remark: '双语',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 13
-        },
-        {
-          module_eid: 14,
-          name: '程序设计基础',
-          mod_parent_id: 8,
-          expect_score: null,
-          course_eid: 102,
-          code: 'A0501180',
-          englishName: 'Basis of Programming',
-          credits: '4',
-          total_hour: '64',
-          teacher_hour: '48',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: null,
-          term: '1',
-          exam: 'X',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 14
-        },
-        {
-          module_eid: 14,
-          name: '计算机类学科导论',
-          mod_parent_id: 8,
-          expect_score: null,
-          course_eid: 103,
-          code: 'A0512020',
-          englishName: 'Introduction to Computer Science',
-          credits: '1',
-          total_hour: '16',
-          teacher_hour: '16',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '1',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 14
-        },
-        {
-          module_eid: 14,
-          name: '计算机科学概论',
-          mod_parent_id: 8,
-          expect_score: null,
-          course_eid: 104,
-          code: 'A051201s',
-          englishName: 'A Brief Overview of Computer Science',
-          credits: '1',
-          total_hour: '16',
-          teacher_hour: '16',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '1',
-          exam: 'C',
-          start: '1月16日',
-          remark: '双语',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 14
-        },
-        {
-          module_eid: 14,
-          name: '离散数学',
-          mod_parent_id: 8,
-          expect_score: null,
-          course_eid: 105,
-          code: 'A0501520',
-          englishName: 'Discrete Mathematics',
-          credits: '4',
-          total_hour: '64',
-          teacher_hour: '64',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '2',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 14
-        },
-        {
-          module_eid: 14,
-          name: '面向对象程序设计（C++）',
-          mod_parent_id: 8,
-          expect_score: null,
-          course_eid: 106,
-          code: 'A0502380',
-          englishName: 'Object Oriented Programming (C++)',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '36',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '12',
-          out_class: null,
-          term: '2',
-          exam: 'Y',
-          start: '1月16日',
-          remark: '注3',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 14
-        },
-        {
-          module_eid: 14,
-          name: '面向对象程序设计（Java）',
-          mod_parent_id: 8,
-          expect_score: null,
-          course_eid: 107,
-          code: 'A0500820',
-          englishName: 'Object Oriented Programming (Java)',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '36',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '12',
-          out_class: '20',
-          term: '2',
-          exam: 'Y',
-          start: '1月16日',
-          remark: '注3',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 14
-        },
-        {
-          module_eid: 15,
-          name: '程序设计课程实践',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 108,
-          code: 'S05*****',
-          englishName: 'Course Practice of Programming',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: '8',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: '16',
-          term: '2',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 15
-        },
-        {
-          module_eid: 16,
-          name: '马克思主义基本原理',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 109,
-          code: 'A2301240',
-          englishName: 'Basic Principles of Marxism',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '42',
-          practice_hour: '6',
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '6',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 16
-        },
-        {
-          module_eid: 16,
-          name: '体育3',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 110,
-          code: 'T1301013',
-          englishName: 'Physical Education3',
-          credits: '1',
-          total_hour: '32',
-          teacher_hour: '4',
-          practice_hour: '28',
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '3',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 16
-        },
-        {
-          module_eid: 16,
-          name: '体育4',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 111,
-          code: 'T1301014',
-          englishName: 'Physical Education4',
-          credits: '1',
-          total_hour: '32',
-          teacher_hour: '4',
-          practice_hour: '28',
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '4',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 16
-        },
-        {
-          module_eid: 16,
-          name: '概率论与数理统计',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 112,
-          code: 'A0714040',
-          englishName: 'Probability Theory and Mathematical Statistics',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '48',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '4',
-          exam: 'X',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 16
-        },
-        {
-          module_eid: 16,
-          name: '大学物理2',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 113,
-          code: 'A0715012',
-          englishName: 'College Physics2',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '48',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '3',
-          exam: 'X',
-          start: '1月16日',
-          remark: '注2',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 16
-        },
-        {
-          module_eid: 16,
-          name: '物理学原理及工程应用2',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 114,
-          code: 'A0715052',
-          englishName: 'Physics Principle and Engineering Application 2',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '48',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '3',
-          exam: 'X',
-          start: '1月16日',
-          remark: '注2',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 16
-        },
-        {
-          module_eid: 16,
-          name: '工程经济学',
-          mod_parent_id: 7,
-          expect_score: null,
-          course_eid: 115,
-          code: 'A0302280',
-          englishName: 'Engineering Economics',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '3',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 16
-        },
-        {
-          module_eid: 17,
-          name: '计算机网络',
-          mod_parent_id: 8,
-          expect_score: null,
-          course_eid: 119,
-          code: 'A0512040',
-          englishName: 'Computer Network ',
-          credits: '4',
-          total_hour: '64',
-          teacher_hour: '64',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '5',
-          exam: 'X',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 17
-        },
-        {
-          module_eid: 18,
-          name: '数字电路设计',
-          mod_parent_id: 10,
-          expect_score: null,
-          course_eid: 120,
-          code: 'A0507980',
-          englishName: 'Digital Circuits Design',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '48',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '3',
-          exam: 'X',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 18
-        },
-        {
-          module_eid: 18,
-          name: '数据库系统原理',
-          mod_parent_id: 10,
-          expect_score: null,
-          course_eid: 121,
-          code: 'A05*****',
-          englishName: 'Principle of Database System ',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '48',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '4',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 18
-        },
-        {
-          module_eid: 18,
-          name: '软件工程',
-          mod_parent_id: 10,
-          expect_score: null,
-          course_eid: 122,
-          code: 'A05*****',
-          englishName: 'Software Engineering',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '5',
-          exam: 'X',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 18
-        },
-        {
-          module_eid: 18,
-          name: '项目管理与案例分析',
-          mod_parent_id: 10,
-          expect_score: null,
-          course_eid: 123,
-          code: 'A0507970',
-          englishName: 'Project Management and Case Analysis',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '6',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 18
-        },
-        {
-          module_eid: 19,
-          name: '嵌入式系统原理',
-          mod_parent_id: 20,
-          expect_score: null,
-          course_eid: 124,
-          code: 'B0504720',
-          englishName: 'Principles of Embedded Systems',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '48',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '5',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 19
-        },
-        {
-          module_eid: 19,
-          name: '嵌入式系统课程设计',
-          mod_parent_id: 20,
-          expect_score: null,
-          course_eid: 125,
-          code: 'S05*****',
-          englishName: 'Course Design for Embedded System',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: '8',
-          practice_hour: null,
-          experiment_hour: '16',
-          in_class: null,
-          out_class: null,
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 19
-        },
-        {
-          module_eid: 19,
-          name: '计算机系统结构',
-          mod_parent_id: 21,
-          expect_score: null,
-          course_eid: 126,
-          code: 'B0504070',
-          englishName: 'Computer Architecture',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '36',
-          practice_hour: null,
-          experiment_hour: '12',
-          in_class: null,
-          out_class: null,
-          term: '5',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 19
-        },
-        {
-          module_eid: 19,
-          name: '并行与分布式处理系统',
-          mod_parent_id: 21,
-          expect_score: null,
-          course_eid: 127,
-          code: 'B0501410',
-          englishName: 'Parallel and Distributed Processing System',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '36',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '12',
-          out_class: null,
-          term: '6',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 19
-        },
-        {
-          module_eid: 19,
-          name: 'Linux系统及应用',
-          mod_parent_id: 21,
-          expect_score: null,
-          course_eid: 128,
-          code: 'B0505130',
-          englishName: 'Linux System and Application ',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: '16',
-          term: '4',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 19
-        },
-        {
-          module_eid: 20,
-          name: '物联网工程导论',
-          mod_parent_id: 22,
-          expect_score: null,
-          course_eid: 129,
-          code: 'B050801s',
-          englishName: 'Introduction to IoT Enginneering ',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '3',
-          exam: 'C',
-          start: '1月16日',
-          remark: '双语',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 20
-        },
-        {
-          module_eid: 20,
-          name: '传感器与传感网',
-          mod_parent_id: 22,
-          expect_score: null,
-          course_eid: 130,
-          code: 'B050816s',
-          englishName: 'Sensor and Sensor Networks',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '16',
-          practice_hour: null,
-          experiment_hour: '16',
-          in_class: null,
-          out_class: null,
-          term: '4',
-          exam: 'C',
-          start: '1月16日',
-          remark: '双语',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 20
-        },
-        {
-          module_eid: 20,
-          name: '物联网硬件基础',
-          mod_parent_id: 22,
-          expect_score: null,
-          course_eid: 131,
-          code: 'B0501320',
-          englishName: 'Fundamental of IoT Hardware',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '24',
-          practice_hour: null,
-          experiment_hour: '24',
-          in_class: null,
-          out_class: null,
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 20
-        },
-        {
-          module_eid: 20,
-          name: '网络通信系统',
-          mod_parent_id: 22,
-          expect_score: null,
-          course_eid: 132,
-          code: 'B050807s',
-          englishName: 'Network Communication System',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '26',
-          practice_hour: null,
-          experiment_hour: '6',
-          in_class: null,
-          out_class: null,
-          term: '6',
-          exam: 'Y',
-          start: '1月16日',
-          remark: '双语',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 20
-        },
-        {
-          module_eid: 21,
-          name: '人工智能导论',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 133,
-          code: 'B0501540',
-          englishName: 'Introduction to Artificial Intelligence',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: '24',
-          term: '3',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 21
-        },
-        {
-          module_eid: 21,
-          name: '机器学习',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 134,
-          code: 'B050155s',
-          englishName: 'Machine Learning',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: '24',
-          term: '4',
-          exam: 'C',
-          start: '1月16日',
-          remark: '双语',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 21
-        },
-        {
-          module_eid: 21,
-          name: '深度学习',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 135,
-          code: 'B050156s',
-          englishName: 'Deep Learning',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: '16',
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: '双语',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 21
-        },
-        {
-          module_eid: 21,
-          name: '脑机智能原理与方法',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 136,
-          code: 'B0501660',
-          englishName: 'Brain-Machine Intelligence Principles and Methods',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '16',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: '16',
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 21
-        },
-        {
-          module_eid: 21,
-          name: '自然语言处理',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 137,
-          code: 'B050165s',
-          englishName: 'Natural Language Processing',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '6',
-          exam: 'C',
-          start: '1月16日',
-          remark: '双语',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 21
-        },
-        {
-          module_eid: 21,
-          name: '计算机视觉',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 138,
-          code: 'B050164s',
-          englishName: 'Computer Vision',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: '24',
-          term: '6',
-          exam: 'Y',
-          start: '1月16日',
-          remark: '双语',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 21
-        },
-        {
-          module_eid: 21,
-          name: '智能计算系统',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 139,
-          code: 'B0501670',
-          englishName: 'AI Computing Systems',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '6',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 21
-        },
-        {
-          module_eid: 22,
-          name: '数据科学导论',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 140,
-          code: 'B0501570',
-          englishName: 'Introduction of Data Science',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '24',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '8',
-          out_class: null,
-          term: '4',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 22
-        },
-        {
-          module_eid: 22,
-          name: '大数据原理及应用',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 141,
-          code: 'B05******',
-          englishName: 'Principles and applications of big data',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: '32',
-          term: '5',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 22
-        },
-        {
-          module_eid: 22,
-          name: '大数据实用案例及分析',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 142,
-          code: 'B0505950',
-          englishName: 'Big data Cases and Analysis ',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '16',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: '16',
-          term: '6',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 22
-        },
-        {
-          module_eid: 22,
-          name: '数据挖掘',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 143,
-          code: 'B050737s',
-          englishName: 'Data Mining',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '36',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '12',
-          out_class: '12',
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: '双语',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 22
-        },
-        {
-          module_eid: 22,
-          name: '数据可视化基础与应用',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 144,
-          code: 'B05******',
-          englishName: 'Basic and Application of Data Visualization',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: '16',
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: '双语',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 22
-        },
-        {
-          module_eid: 23,
-          name: '网络安全原理与实践',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 145,
-          code: 'B0501690',
-          englishName: 'Network Security Principles and Practices',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: '16',
-          in_class: null,
-          out_class: '16',
-          term: '6',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 23
-        },
-        {
-          module_eid: 23,
-          name: '信息安全技术',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 146,
-          code: 'B0504870',
-          englishName: 'Information Security Technology',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '36',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '12',
-          out_class: null,
-          term: '6',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 23
-        },
-        {
-          module_eid: 23,
-          name: '网络编程',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 147,
-          code: 'B0500170',
-          englishName: 'Network Programming',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: null,
-          term: '6',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 23
-        },
-        {
-          module_eid: 23,
-          name: '区块链技术原理与开发实战',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 148,
-          code: 'B0501790',
-          englishName:
-            'Principles of  Blockchain and its application development',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: null,
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 23
-        },
-        {
-          module_eid: 24,
-          name: '算法分析与设计',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 149,
-          code: 'B0503260',
-          englishName: 'Analysis and Design of Algorithms',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: '16',
-          term: '4',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 24
-        },
-        {
-          module_eid: 24,
-          name: '软件系统设计与体系架构',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 150,
-          code: 'B05*****',
-          englishName: 'Software System Design and Architecture',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '16',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: '16',
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 24
-        },
-        {
-          module_eid: 24,
-          name: '可视计算基础',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 151,
-          code: 'B0506430',
-          englishName: 'Fundamental of Visible Computing',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '36',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '12',
-          out_class: null,
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 24
-        },
-        {
-          module_eid: 24,
-          name: '数字图像处理',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 152,
-          code: 'B0504770',
-          englishName: 'Digital Image Processing',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '24',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '8',
-          out_class: null,
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 24
-        },
-        {
-          module_eid: 24,
-          name: '计算机图形学',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 153,
-          code: 'B0504060',
-          englishName: 'Computer Graphics',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '36',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '12',
-          out_class: '21',
-          term: '4',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 24
-        },
-        {
-          module_eid: 24,
-          name: 'ACM程序设计竞赛实训',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 154,
-          code: 'B0512060',
-          englishName: 'ACM Programming Training',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '48',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '3',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 24
-        },
-        {
-          module_eid: 24,
-          name: '服务外包竞赛实践',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 155,
-          code: 'B0502900',
-          englishName: 'Practice of Service Outsourcing',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '8',
-          practice_hour: '24',
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '4',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 24
-        },
-        {
-          module_eid: 24,
-          name: '数学建模',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 156,
-          code: 'B0714160',
-          englishName: 'Mathematical Modelling',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '3',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 24
-        },
-        {
-          module_eid: 24,
-          name: '云计算技术',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 157,
-          code: 'B0504880',
-          englishName: 'Cloud Computing Technology',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '38',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '10',
-          out_class: '20',
-          term: '6',
-          exam: 'Y',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 24
-        },
-        {
-          module_eid: 24,
-          name: '工业软件导论',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 158,
-          code: 'B05*****',
-          englishName: 'Introduction to industrial software',
-          credits: '2',
-          total_hour: '32',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: null,
-          out_class: null,
-          term: '2',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 24
-        },
-        {
-          module_eid: 24,
-          name: '虚拟现实技术基础与应用',
-          mod_parent_id: 11,
-          expect_score: null,
-          course_eid: 159,
-          code: 'B050519s',
-          englishName: 'Basis and Application of Virtual Reality Technology',
-          credits: '3',
-          total_hour: '48',
-          teacher_hour: '32',
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '16',
-          out_class: '16',
-          term: '6',
-          exam: 'C',
-          start: '1月16日',
-          remark: '全英文',
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 24
-        },
-        {
-          module_eid: 25,
-          name: '大学物理实验B',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 160,
-          code: 'S0718060',
-          englishName: 'Experiments in College Physics B',
-          credits: '0',
-          total_hour: '16',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: '16',
-          in_class: null,
-          out_class: null,
-          term: '3',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '数据结构课程实践',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 161,
-          code: 'S05*****',
-          englishName: 'Course Practice of Data Structure',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '24',
-          out_class: '24',
-          term: '3',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '数字电路课程设计',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 162,
-          code: 'S05*****',
-          englishName: 'Digital Circuits Course Design',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: '24',
-          in_class: null,
-          out_class: '24',
-          term: '3',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '计算机组成原理课程设计（甲）',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 163,
-          code: 'S05*****',
-          englishName:
-            'Course Design of Principle of Computer Organization（A）',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: '24',
-          in_class: null,
-          out_class: '24',
-          term: '4',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '操作系统课程实践',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 164,
-          code: 'S05*****',
-          englishName: 'Course Practice for Operating System',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '24',
-          out_class: '24',
-          term: '6',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '编译原理课程实践',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 165,
-          code: 'S05*****',
-          englishName: 'Course Practice for Compiler',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '24',
-          out_class: '24',
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '计算机网络实验',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 166,
-          code: 'S05*****',
-          englishName: 'Experiment of Computer Network ',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: '24',
-          in_class: null,
-          out_class: '24',
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '软件工程课程设计',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 167,
-          code: 'S05*****',
-          englishName: 'Course Practice for Software Engineering',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '24',
-          out_class: '24',
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '数据库系统原理课程设计',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 168,
-          code: 'S05*****',
-          englishName: 'Course Design for Database',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: null,
-          in_class: '24',
-          out_class: '24',
-          term: '4',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '创新实践1',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 169,
-          code: 'S05*****',
-          englishName: 'Innovation Practice 1',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: '24',
-          in_class: null,
-          out_class: '24',
-          term: '3',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '创新实践2',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 170,
-          code: 'S05*****',
-          englishName: 'Innovation Practice 2',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: '24',
-          in_class: null,
-          out_class: '24',
-          term: '4',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '创新实践3',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 171,
-          code: 'S05*****',
-          englishName: 'Innovation Practice 3',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: '24',
-          in_class: null,
-          out_class: '24',
-          term: '5',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
-        },
-        {
-          module_eid: 25,
-          name: '创新综合实践',
-          mod_parent_id: 9,
-          expect_score: null,
-          course_eid: 172,
-          code: 'S05*****',
-          englishName: 'Comprehensive Innovation Practice',
-          credits: '1',
-          total_hour: '24',
-          teacher_hour: null,
-          practice_hour: null,
-          experiment_hour: '24',
-          in_class: null,
-          out_class: '24',
-          term: '6',
-          exam: 'C',
-          start: '1月16日',
-          remark: null,
-          cou_expect_score: null,
-          on_group: null,
-          cou_parent_id: 25
+      drop:{
+        dropmodule:{
+          module_eid:0,
+          mod_parent_id: 0
+        },
+        dropcourse:{
+          course_eid: 0,
+          cou_parent_id: 0
         }
-      ],
+      },
+      allTags:['a','b','c','f','g','r'],//记录所有的tag值
+      showIndex:2,
+      testdata: [],
       moduledata: [
         {
-          module_eid: 1,
-          name: '计算机科学与技术',
-          mod_parent_id: null,
-          expect_score: null
+          "module_eid": 1,
+          "name": "计算机科学与技术",
+          "mod_parent_id": null,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 2,
-          name: '通识公共课',
-          mod_parent_id: 1,
-          expect_score: null
+          "module_eid": 2,
+          "name": "通识公共课",
+          "mod_parent_id": 1,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 3,
-          name: '学科专业课',
-          mod_parent_id: 1,
-          expect_score: null
+          "module_eid": 3,
+          "name": "学科专业课",
+          "mod_parent_id": 1,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 4,
-          name: '实践教学环节',
-          mod_parent_id: 1,
-          expect_score: null
+          "module_eid": 4,
+          "name": "实践教学环节",
+          "mod_parent_id": 1,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 5,
-          name: '专业课',
-          mod_parent_id: 1,
-          expect_score: null
+          "module_eid": 5,
+          "name": "专业课",
+          "mod_parent_id": 1,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 6,
-          name: '课外教育项目',
-          mod_parent_id: 1,
-          expect_score: null
+          "module_eid": 6,
+          "name": "课外教育项目",
+          "mod_parent_id": 1,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 7,
-          name: '通识必修',
-          mod_parent_id: 2,
-          expect_score: null
+          "module_eid": 7,
+          "name": "通识必修",
+          "mod_parent_id": 2,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 8,
-          name: '学科必修',
-          mod_parent_id: 3,
-          expect_score: null
+          "module_eid": 8,
+          "name": "学科必修",
+          "mod_parent_id": 3,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 9,
-          name: '实践必修',
-          mod_parent_id: 4,
-          expect_score: null
+          "module_eid": 9,
+          "name": "实践必修",
+          "mod_parent_id": 4,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 10,
-          name: '专业必修',
-          mod_parent_id: 5,
-          expect_score: null
+          "module_eid": 11,
+          "name": "专业选修",
+          "mod_parent_id": 5,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 11,
-          name: '专业选修',
-          mod_parent_id: 5,
-          expect_score: null
+          "module_eid": 12,
+          "name": "课外教育项目",
+          "mod_parent_id": 6,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 12,
-          name: '课外教育项目',
-          mod_parent_id: 6,
-          expect_score: null
+          "module_eid": 13,
+          "name": "35学分",
+          "mod_parent_id": 7,
+          "expect_score": null,
+          "lessonArr": [
+            {
+              "tag":"必修课程;通识必修",
+              "code": "A2301210",
+              "name": "中国近现代史纲领",
+              "englishName": "The Outline of Modern and Contemporary History of China",
+              "credits": "3",
+              "total_hour": "48",
+              "teacher_hour": "42",
+              "practice_hour": "6",
+              "experiment_hour": "",
+              "in_class": "",
+              "out_class": "",
+              "term": "2",
+              "exam": "Y",
+              "start": "1月16日",
+              "remark": "",
+              "cou_parent_id": 13
+            },
+            {
+              "tag":"必修课程;通识必修",
+              "code": "A2301260",
+              "name": "思想道德与法治",
+              "englishName": "Ideological and  Moral Cultivation and Rule of Law",
+              "credits": "3",
+              "total_hour": "48",
+              "teacher_hour": "42",
+              "practice_hour": "6",
+              "experiment_hour": null,
+              "in_class": null,
+              "out_class": null,
+              "term": "1",
+              "exam": "Y",
+              "start": "1月16日",
+              "remark": null,
+              "cou_parent_id": 13
+            },
+            {
+              "tag":"必修课程;通识必修",
+              "code": "T1301011",
+              "name": "体育1",
+              "englishName": "Physical Education1",
+              "credits": "1",
+              "total_hour": "32",
+              "teacher_hour": "4",
+              "practice_hour": "28",
+              "experiment_hour": null,
+              "in_class": null,
+              "out_class": null,
+              "term": "1",
+              "exam": "C",
+              "start": "1月16日",
+              "remark": null,
+              "cou_parent_id": 13
+            },
+
+          ]
         },
         {
-          module_eid: 13,
-          name: '35学分',
-          mod_parent_id: 7,
-          expect_score: null
+          "module_eid": 14,
+          "name": "13学分",
+          "mod_parent_id": 8,
+          "expect_score": null,
+          "lessonArr": [
+            {
+              "tag":"必修课程;专业必修",
+              "code": "A0501180",
+              "name": "程序设计基础",
+              "englishName": "Basis of Programming",
+              "credits": "4",
+              "total_hour": "64",
+              "teacher_hour": "48",
+              "practice_hour": null,
+              "experiment_hour": null,
+              "in_class": "16",
+              "out_class": null,
+              "term": "1",
+              "exam": "X",
+              "start": "1月16日",
+              "remark": null,
+              "cou_parent_id": 14
+            },
+            {
+              "tag":"必修课程;专业必修",
+              "code": "A0512020",
+              "name": "计算机类学科导论",
+              "englishName": "Introduction to Computer Science",
+              "credits": "1",
+              "total_hour": "16",
+              "teacher_hour": "16",
+              "practice_hour": null,
+              "experiment_hour": null,
+              "in_class": null,
+              "out_class": null,
+              "term": "1",
+              "exam": "C",
+              "start": "1月16日",
+              "remark": null,
+              "cou_parent_id": 14
+            },
+
+          ]
         },
         {
-          module_eid: 14,
-          name: '13学分',
-          mod_parent_id: 8,
-          expect_score: null
+          "module_eid": 15,
+          "name": "1学分",
+          "mod_parent_id": 9,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 15,
-          name: '1学分',
-          mod_parent_id: 9,
-          expect_score: null
+          "module_eid": 16,
+          "name": "25.5学分",
+          "mod_parent_id": 7,
+          "expect_score": null,
+          "lessonArr": [
+            {
+              "tag":"必修课程;通识必修",
+              "code": "A2301240",
+              "name": "马克思主义基本原理",
+              "englishName": "Basic Principles of Marxism",
+              "credits": "3",
+              "total_hour": "48",
+              "teacher_hour": "42",
+              "practice_hour": "6",
+              "experiment_hour": null,
+              "in_class": null,
+              "out_class": null,
+              "term": "6",
+              "exam": "Y",
+              "start": "1月16日",
+              "remark": null,
+              "cou_parent_id": 16
+            },
+            {
+              "tag":"必修课程;通识必修",
+              "code": "T1301013",
+              "name": "体育3",
+              "englishName": "Physical Education3",
+              "credits": "1",
+              "total_hour": "32",
+              "teacher_hour": "4",
+              "practice_hour": "28",
+              "experiment_hour": null,
+              "in_class": null,
+              "out_class": null,
+              "term": "3",
+              "exam": "C",
+              "start": "1月16日",
+              "remark": null,
+              "cou_parent_id": 16
+            },
+
+          ]
         },
         {
-          module_eid: 16,
-          name: '25.5学分',
-          mod_parent_id: 7,
-          expect_score: null
+          "module_eid": 17,
+          "name": "16学分",
+          "mod_parent_id": 8,
+          "expect_score": null,
+          "lessonArr": [
+            {
+              "tag":"必修课程;专业必修",
+              "code": "A0512040",
+              "name": "计算机网络",
+              "englishName": "Computer Network ",
+              "credits": "4",
+              "total_hour": "64",
+              "teacher_hour": "64",
+              "practice_hour": null,
+              "experiment_hour": null,
+              "in_class": null,
+              "out_class": null,
+              "term": "5",
+              "exam": "X",
+              "start": "1月16日",
+              "remark": null,
+              "cou_parent_id": 17
+            }
+          ]
         },
         {
-          module_eid: 17,
-          name: '16学分',
-          mod_parent_id: 8,
-          expect_score: null
+          "module_eid": 20,
+          "name": "物联网工程模块",
+          "mod_parent_id": 11,
+          "expect_score": null,
+          "lessonArr": [
+            {
+              "tag":"必修课程;专业必修",
+              "code": "B050801s",
+              "name": "物联网工程导论",
+              "englishName": "Introduction to IoT Enginneering ",
+              "credits": "2",
+              "total_hour": "32",
+              "teacher_hour": "32",
+              "practice_hour": null,
+              "experiment_hour": null,
+              "in_class": null,
+              "out_class": null,
+              "term": "3",
+              "exam": "C",
+              "start": "1月16日",
+              "remark": "双语",
+              "cou_parent_id": 20
+            },
+            {
+              "tag":"必修课程;专业必修",
+              "code": "B050816s",
+              "name": "传感器与传感网",
+              "englishName": "Sensor and Sensor Networks",
+              "credits": "2",
+              "total_hour": "32",
+              "teacher_hour": "16",
+              "practice_hour": null,
+              "experiment_hour": "16",
+              "in_class": null,
+              "out_class": null,
+              "term": "4",
+              "exam": "C",
+              "start": "1月16日",
+              "remark": "双语",
+              "cou_parent_id": 20
+            }
+          ]
         },
         {
-          module_eid: 18,
-          name: '13学分',
-          mod_parent_id: 10,
-          expect_score: null
+          "module_eid": 21,
+          "name": "人工智能模块",
+          "mod_parent_id": 11,
+          "expect_score": null,
+          "lessonArr": [
+            {
+              "tag":"必修课程;专业选修",
+              "code": "B0501540",
+              "name": "人工智能导论",
+              "englishName": "Introduction to Artificial Intelligence",
+              "credits": "2",
+              "total_hour": "32",
+              "teacher_hour": "32",
+              "practice_hour": null,
+              "experiment_hour": null,
+              "in_class": null,
+              "out_class": "24",
+              "term": "3",
+              "exam": "C",
+              "start": "1月16日",
+              "remark": null,
+              "cou_parent_id": 21
+            },
+            {
+              "tag":"必修课程;专业选修",
+              "code": "B050155s",
+              "name": "机器学习",
+              "englishName": "Machine Learning",
+              "credits": "2",
+              "total_hour": "32",
+              "teacher_hour": "32",
+              "practice_hour": null,
+              "experiment_hour": null,
+              "in_class": null,
+              "out_class": "24",
+              "term": "4",
+              "exam": "C",
+              "start": "1月16日",
+              "remark": "双语",
+              "cou_parent_id": 21
+            }
+          ]
         },
         {
-          module_eid: 19,
-          name: '计算机系统模块',
-          mod_parent_id: 11,
-          expect_score: null
+          "module_eid": 22,
+          "name": "数据科学模块",
+          "mod_parent_id": 11,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 20,
-          name: '物联网工程模块',
-          mod_parent_id: 11,
-          expect_score: null
+          "module_eid": 23,
+          "name": "网络安全模块",
+          "mod_parent_id": 11,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 21,
-          name: '人工智能模块',
-          mod_parent_id: 11,
-          expect_score: null
+          "module_eid": 24,
+          "name": "公共模块",
+          "mod_parent_id": 11,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 22,
-          name: '数据科学模块',
-          mod_parent_id: 11,
-          expect_score: null
+          "module_eid": 25,
+          "name": "31.5学分",
+          "mod_parent_id": 9,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 23,
-          name: '网络安全模块',
-          mod_parent_id: 11,
-          expect_score: null
+          "module_eid": 26,
+          "name": "7学分",
+          "mod_parent_id": 12,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 24,
-          name: '公共模块',
-          mod_parent_id: 11,
-          expect_score: null
+          "module_eid": 27,
+          "name": "通识选修",
+          "mod_parent_id": 2,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 25,
-          name: '31.5学分',
-          mod_parent_id: 9,
-          expect_score: null
+          "module_eid": 28,
+          "name": "3学分",
+          "mod_parent_id": 27,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 26,
-          name: '7学分',
-          mod_parent_id: 12,
-          expect_score: null
+          "module_eid": 29,
+          "name": "通识选修课",
+          "mod_parent_id": 1,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 27,
-          name: '通识选修',
-          mod_parent_id: 2,
-          expect_score: null
+          "module_eid": 30,
+          "name": "10学分",
+          "mod_parent_id": 27,
+          "expect_score": null,
+          "lessonArr": []
         },
         {
-          module_eid: 28,
-          name: '3学分',
-          mod_parent_id: 27,
-          expect_score: null
-        },
-        {
-          module_eid: 29,
-          name: '通识选修课',
-          mod_parent_id: 1,
-          expect_score: null
-        },
-        {
-          module_eid: 30,
-          name: '10学分',
-          mod_parent_id: 27,
-          expect_score: null
+          "module_eid": 84,
+          "name": "16学分",
+          "mod_parent_id": 32,
+          "expect_score": 0,
+          "lessonArr": []
         }
       ],
       treeData: [
         {
-          childCredits: 210, // 字菜单已经有的学分数
+          childcredits: 210, // 字菜单已经有的学分数
           childtime: 1232, // 子菜单已经有的学时数字。
           // 数据在前端处理。
           module_eid: 0,
-          name: '计算机科学与技术1',
-          expect_score: 135,
-          myclass: 'l1', // myclass是前端处理数据时自己加的，树形关系也是靠这个加的，classTable也是
+          name: '计算机科学与技术',
           classTable: [
             {
+              inputVisible:false,
+              inputValue:'',
+              tag:['a','b'],
               normal: true, // 标记是否为标准课程
               editable: false, // 标记当前是否可编辑
               module_eid: 13,
@@ -2400,6 +921,9 @@ export default {
               cou_parent_id: 13 // 课程父级目录id
             },
             {
+              inputVisible:false,
+              inputValue:'',
+              tag:['a','c'],
               editable: false,
               normal: true,
               module_eid: 13,
@@ -2425,6 +949,9 @@ export default {
               cou_parent_id: 13
             },
             {
+              inputVisible:false,
+              inputValue:'',
+              tag:['a','e'],
               editable: false,
               normal: true,
               module_eid: 13,
@@ -2450,15 +977,15 @@ export default {
               cou_parent_id: 13
             }
           ],
-          cou_parent_id: 0,
           childArr: [
             {
               module_eid: 1,
               name: '专业必修1-1',
-              expect_score: 15,
-              myclass: 'l2',
               classTable: [
                 {
+                  inputVisible:false,
+                  inputValue:'',
+                  tag:['f','g'],
                   editable: false,
                   normal: true,
                   module_eid: 13,
@@ -2483,7 +1010,9 @@ export default {
                   on_group: null,
                   cou_parent_id: 13
                 },
-                {
+                {inputVisible:false,
+                  inputValue:'',
+                  tag:['f','e'],
                   editable: false,
                   normal: true,
                   module_eid: 13,
@@ -2509,6 +1038,9 @@ export default {
                   cou_parent_id: 13
                 },
                 {
+                  inputVisible:false,
+                  inputValue:'',
+                  tag:['f','r'],
                   editable: false,
                   normal: true,
                   module_eid: 13,
@@ -2534,17 +1066,16 @@ export default {
                   cou_parent_id: 13
                 }
               ],
-              cou_parent_id: 1,
               childArr: [
                 {
                   module_eid: 3,
                   name: '专业1-1-1',
-                  expect_score: 40,
-                  cou_parent_id: 2,
                   childArr: [],
-                  myclass: 'l3',
                   classTable: [
                     {
+                      inputVisible:false,
+                      inputValue:'',
+                      tag:['f','g'],
                       editable: false,
                       normal: true,
                       module_eid: 14,
@@ -2570,6 +1101,9 @@ export default {
                       cou_parent_id: 14
                     },
                     {
+                      inputVisible:false,
+                      inputValue:'',
+                      tag:['f','g'],
                       editable: false,
                       normal: true,
                       module_eid: 14,
@@ -2595,15 +1129,15 @@ export default {
                       cou_parent_id: 14
                     }
                   ],
-                  isExtend: false
                 },
                 {
                   module_eid: 4,
                   name: '专业1-1-2',
-                  expect_score: 30,
-                  myclass: 'l3',
                   classTable: [
                     {
+                      inputVisible:false,
+                      inputValue:'',
+                      tag:['f','g'],
                       editable: false,
                       normal: true,
                       module_eid: 13,
@@ -2629,6 +1163,9 @@ export default {
                       cou_parent_id: 13
                     },
                     {
+                      inputVisible:false,
+                      inputValue:'',
+                      tag:['f','g'],
                       normal: true,
                       editable: false,
                       module_eid: 13,
@@ -2655,6 +1192,9 @@ export default {
                       cou_parent_id: 13
                     },
                     {
+                      inputVisible:false,
+                      inputValue:'',
+                      tag:['f','g'],
                       normal: true,
                       editable: false,
                       module_eid: 13,
@@ -2680,6 +1220,9 @@ export default {
                       cou_parent_id: 13
                     },
                     {
+                      inputVisible:false,
+                      inputValue:'',
+                      tag:['f','g'],
                       normal: true,
                       editable: false,
                       module_eid: 13,
@@ -2705,40 +1248,31 @@ export default {
                       cou_parent_id: 13
                     }
                   ],
-                  cou_parent_id: 2,
                   childArr: [
                     {
                       module_eid: 2,
                       name: '专业选修1-1-2-1',
-                      expect_score: 45,
-                      myclass: 'l2',
                       classTable: [],
-                      cou_parent_id: 4,
                       childArr: []
                     }
                   ],
-                  isExtend: false
                 }
               ],
-              isExtend: false
             },
             {
               module_eid: 2,
               name: '专业选修1-2',
-              expect_score: 45,
-              myclass: 'l2',
               classTable: [],
-              cou_parent_id: 1,
               childArr: [
                 {
                   module_eid: 6,
                   name: '选修1-2-1',
-                  expect_score: 51,
-                  cou_parent_id: 6,
                   childArr: [],
-                  myclass: 'l3',
                   classTable: [
                     {
+                      inputVisible:false,
+                      inputValue:'',
+                      tag:['f','a'],
                       normal: true,
                       module_eid: 14,
                       editable: false,
@@ -2764,6 +1298,9 @@ export default {
                       cou_parent_id: 14
                     },
                     {
+                      inputVisible:false,
+                      inputValue:'',
+                      tag:['f','a'],
                       normal: true,
                       editable: false,
                       module_eid: 14,
@@ -2789,15 +1326,15 @@ export default {
                       cou_parent_id: 14
                     }
                   ],
-                  isExtend: false
                 },
                 {
                   module_eid: 7,
                   name: '选修1-2-2',
-                  expect_score: 22,
-                  myclass: 'l3',
                   classTable: [
                     {
+                      inputVisible:false,
+                      inputValue:'',
+                      tag:['f','a'],
                       normal: true,
                       editable: false,
                       module_eid: 14,
@@ -2823,6 +1360,8 @@ export default {
                       cou_parent_id: 14
                     },
                     {
+                      inputVisible:false,
+                      inputValue:'',
                       normal: true,
                       editable: false,
                       module_eid: 14,
@@ -2848,15 +1387,10 @@ export default {
                       cou_parent_id: 14
                     }
                   ],
-                  childArr: [],
-                  cou_parent_id: 6,
-                  isExtend: false
                 }
               ],
-              isExtend: false
             }
           ],
-          isExtend: false
         }
       ]
     }
