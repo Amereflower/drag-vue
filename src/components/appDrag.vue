@@ -8,7 +8,6 @@
           :class="item.myclass"
         >
 
-
           <template #title>
             <div><span class="iconfont icon-mulu1"></span>{{ item.name }}</div>
           </template>
@@ -46,7 +45,6 @@
               <i class="el-icon-edit" slot="reference"></i>
 <!--              <el-button size="small" slot="reference" type="primary" icon="el-icon-edit" circle></el-button>-->
             </el-popover>
-
 
             <el-dialog title="新建目录" :visible.sync="fileshow">
               <el-form :model="form">
@@ -522,7 +520,6 @@
                   >
                 </el-popover>
 
-
               </div>
             </div>
           </draggable>
@@ -540,44 +537,44 @@
 
 <script>
 
-import { ref } from "vue";
-import draggable from "vuedraggable";
+import { ref } from 'vue'
+import draggable from 'vuedraggable'
 
 export default {
-  name: "appDrag",
-  props: ["treeData"],
-  setup() {
-    const activeNames = ref(["1"]);
+  name: 'appDrag',
+  props: ['treeData'],
+  setup () {
+    const activeNames = ref(['1'])
     // const handleChange = (val) => {
     //     console.log(val)
     // }
     return {
-      activeNames,
+      activeNames
       // handleChange
-    };
+    }
   },
   methods: {
-    changeTreeData(nowTreeData) {
-      this.$emit("update:modelValue", nowTreeData);
+    changeTreeData (nowTreeData) {
+      this.$emit('update:modelValue', nowTreeData)
     },
-    editmsg(element) {
-      //点击修改按钮后更改相应值
+    editmsg (element) {
+      // 点击修改按钮后更改相应值
       // console.log(element);
-      element.editable = true;
+      element.editable = true
     },
-    savemsg(element) {
-      element.editable = false;
+    savemsg (element) {
+      element.editable = false
     },
-    delmsg(item, element) {
-      //删除此课程
+    delmsg (item, element) {
+      // 删除此课程
       console.log(item.classTable)
       item.classTable.map((val, i) => {
         if (val.course_eid === element.course_eid) {
-          item.classTable.splice(i, 1);
+          item.classTable.splice(i, 1)
           console.log('删除成功！')
         }
-      });
-      //拖拽后实际上treedata没有更新，但是可以获取到在页面上的位置从而与后端发请求，再数据结构做改变
+      })
+      // 拖拽后实际上treedata没有更新，但是可以获取到在页面上的位置从而与后端发请求，再数据结构做改变
 
       // item.find(item => item.course_eid==element.course_eid);
 
@@ -585,33 +582,30 @@ export default {
       // console.log(item.expect_score)
       console.log(this.treeData)
     },
-    findcourse(id) {
-      return id;
+    findcourse (id) {
+      return id
     },
-    countcredit(item) {
+    countcredit (item) {
       return () => {
-        return item.childcredits;
-      };
+        return item.childcredits
+      }
     },
-    caccredit(item) {
-
-
+    caccredit (item) {
       // let max = item.expect_score;
-      let max = 200;
-      return Math.round((item.childcredits* 100) / max);
+      let max = 200
+      return Math.round((item.childcredits * 100) / max)
     },
-    cactime(item) {
-
-      let max = 4000; //每个模块也有一个最大学时数，也需要设置或返回。目录出设置
-      return Math.round((item.childtime * 100) / max);
+    cactime (item) {
+      let max = 4000 // 每个模块也有一个最大学时数，也需要设置或返回。目录出设置
+      return Math.round((item.childtime * 100) / max)
     },
-    counttime(item) {
+    counttime (item) {
       return () => {
         return item.childtime
-      };
+      }
     },
-    adddata(item, form) {
-      //既要item也要from，
+    adddata (item, form) {
+      // 既要item也要from，
       item.classTable.push({
         editable: false,
         normal: true,
@@ -635,90 +629,89 @@ export default {
         remark: form.remark,
         cou_expect_score: null,
         on_group: null,
-        cou_parent_id: 13,
-      });
-      item.childcredits+=form.credits;
-      item.childtime+=form.total_hour;
+        cou_parent_id: 13
+      })
+      item.childcredits += form.credits
+      item.childtime += form.total_hour
       // this.transgerData()  //将新添加的课程分数向上传递
-      this.fromshow = false;
-      this.form = [];
+      this.fromshow = false
+      this.form = []
     },
-    addfile(item) {
-      console.log(item);
-      console.log("AAAAAAAAAAAAAA");
+    addfile (item) {
+      console.log(item)
+      console.log('AAAAAAAAAAAAAA')
       item.childArr.push({
         module_eid: 255,
         name: this.newfile.name,
         expect_score: this.newfile.expect_score,
         classTable: [],
         childArr: [],
-        mod_parent_id:item.module_eid
-      });
-      this.newfile = [];
-      this.fileshow = false;
+        mod_parent_id: item.module_eid
+      })
+      this.newfile = []
+      this.fileshow = false
       // 添加子目录、目录的各个属性，用弹出框提示用户输入
     },
-    start() {
-      console.log("i ma start drag right now!!!");
+    start () {
+      console.log('i ma start drag right now!!!')
     },
-    startt() {
-      console.log("AAAAAAAAAAAAAAAAA");
+    startt () {
+      console.log('AAAAAAAAAAAAAAAAA')
     },
-    whenchoose(element,item) {
-      console.log(element.module_eid+" 从目录 [" + item.module_eid+"] 被拿走了 ");
+    whenchoose (element, item) {
+      console.log(element.module_eid + ' 从目录 [' + item.module_eid + '] 被拿走了 ')
       // console.log(item.classTable)  并没有被改变，但是拖动后再次拖动会改变，为什么
     },
-    whenend(item) {
-
-        console.log("新目录是"+item.module_eid)
+    whenend (item) {
+      console.log('新目录是' + item.module_eid)
     },
-    filechoose(item,id) {
-        console.log("从"+id);
+    filechoose (item, id) {
+      console.log('从' + id)
     },
-    fileend(item,id) {
-        // console.log(item.log)
-        // console.log("after id is"+id)
-        console.log("移动到"+id)
+    fileend (item, id) {
+      // console.log(item.log)
+      // console.log("after id is"+id)
+      console.log('移动到' + id)
     },
-    delfile(item) {
-      console.log(item);
+    delfile (item) {
+      console.log(item)
     }
   },
-  data() {
+  data () {
     return {
       form: {
-        code: "",
-        name: "",
-        englishName: "",
-        credits: "",
-        total_hour: "",
-        teacher_hour: "",
-        practice_hour: "",
+        code: '',
+        name: '',
+        englishName: '',
+        credits: '',
+        total_hour: '',
+        teacher_hour: '',
+        practice_hour: '',
         experiment_hour: null,
         in_class: null,
         out_class: null,
-        term: "",
-        exam: "",
-        start: "",
-        remark: null,
+        term: '',
+        exam: '',
+        start: '',
+        remark: null
       },
       fileshow: false,
       fromshow: false,
-      formLabelWidth: "120px",
+      formLabelWidth: '120px',
       newfile: {
-        name: "",
-        expect_score: "",
-        module_eid: 9, //后端返回
+        name: '',
+        expect_score: '',
+        module_eid: 9, // 后端返回
         childArr: [],
-        myclass: "", //询问用户还是同级设置
-        classTable: [],
-      },
-    };
+        myclass: '', // 询问用户还是同级设置
+        classTable: []
+      }
+    }
   },
   components: {
-    draggable,
-  },
-};
+    draggable
+  }
+}
 </script>
 <style scoped>
 .tablehead {
@@ -806,8 +799,6 @@ body {
   margin-bottom: 15px;
   width: 350px;
 }
-
-
 
 .coursename {
   padding-top: 8px;
