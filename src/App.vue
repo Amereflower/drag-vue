@@ -1,8 +1,7 @@
 <template>
   <div id="app">
 
-
-    <el-menu  class="el-menu-demo" mode="horizontal" @select="changePage">
+    <el-menu class="el-menu-demo" mode="horizontal" @select="changePage">
       <el-submenu index="4">
         <template slot="title">切换培养计划</template>
         <el-menu-item index="2">计算机科学与技术</el-menu-item>
@@ -11,59 +10,112 @@
       </el-submenu>
     </el-menu>
     <div class="line"></div>
-   <el-button style="margin-top:10px;float:left" size="small" @click="exportExcel" v-if="showIndex==2" >导出Excel</el-button>
+    <el-button style="margin-top:10px;float:left" size="small" @click="exportExcel" v-if="showIndex===2">导出Excel
+    </el-button>
 
+    <tagSelect v-if="tagSelectView_Class" :module_Tag="moduledata" :tagFlag="tagFlag_Class" :tagArr="tagArr" :firstPosition="firstPosition_Class" type="class"></tagSelect>
+    <tagSelect v-if="tagSelectView_Model" :module_Tag="moduledata" :tagFlag="tagFlag_Model" :tagArr="tagArr" :firstPosition="firstPosition_Model" type="model"></tagSelect>
 
-    <el-popover
-      placement="right"
-      title="标签统计"
-      width="200"
-      trigger="click"
-      >
-      <div v-for="tag in allTags">
-        <span style="width:200px;">{{tag}}学分数：</span>
-        {{creCacTag(tag)}}
-        <span style="width:200px;" >{{tag}}学时数：</span>
-        {{timeCacTag(tag)}}
-      </div>
-
-      <el-button slot="reference" size="small" style="margin-top:10px;float: left;margin-left: 10px">标签统计</el-button>
-    </el-popover>
+    <el-button size="small" style="margin-top:10px;float: left;margin-left: 10px" @click="tagChange_Model">模块标签统计
+    </el-button>
+    <el-button size="small" style="margin-top:10px;float: left;margin-left: 10px" @click="tagChange_CLass">课程标签统计
+    </el-button>
 
     <el-button @click="totree" size="small" style="float:left;margin-top:10px;margin-left: 10px">totree</el-button>
 
-    <appDrag  :treeData="treeData" :drop="drop" v-if="showIndex==2" style="clear:both"></appDrag>
+    <appDrag :treeData="treeData" :drop="drop" v-if="showIndex==2" style="clear:both"></appDrag>
   </div>
 </template>
 
 <script>
 import appDrag from './components/appDrag.vue'
+import tagSelect from './components/tagSelect'
 import {export2Excel} from './components/util.js'
 
 export default {
   name: 'App',
   components: {
     // draggable,
+    tagSelect,
     appDrag
   },
   created: function () {
-  this.getmodule();
+    this.totree() // 接口失效时调用
+    // this.getmodule();  //接口正常时对接
   },
   methods: {
-    timeCacTag(tag){
-      //从后端查询所有的该tag的课程，加分返回数据
-      return 3;
+    complexCaculate (tagArr) {
+      let Allcredits, Allhours, Allexperiment, Alltheory
+      // 总学分，总学时，实验学时，理论学时。
+      for (let i = 0; i < this.moduledata.length; i++) {
+        for (let j = 0; j < tagArr.length; j++) {
+          if (this.moduledata[i].tag.split(';').indexOf(tagArr[j]) !== -1) {
+            // 以上操作也可以用接口替代，有接口返回查询带tag的所有课程数据
+            this.getData(index)// 每一个模块对应一个或者多个tag，拿到这些模块的id，与coursedata里面做比较筛选数据
+            // 通过判断所有课程的parentid和输入的参数index是否相等，如果相等就实现相关数据的运算得到返回结果。
+            // 但是每一个tag返回的数据只有四个值，无论它对应几个模块，对应多个模块需要多次调用函数，要考虑返回值相加等问题
+
+            // 这里是模块标签，课程标签简单很多。相当于直接拿到了index，不过是标签，只需要split一下再对比就可以了
+          }
+        }
+      }
     },
-    creCacTag(tag){
-      return 5;
+    getData (index) {
+      let retCre = 0
+      let rethour = 0
+      let retExe = 0
+      let retTheory = 0
+      for (let i = 0; i < this.coursedata.length; i++) {
+        // 课程的模块父节点如果是待查询的，就相加。
+        if (this.coursedata[i].mod_parent_id === index) {
+          retCre += this.coursedata[i].credits
+          rethour += this.coursedata[i].total_hour
+          retExe = retExe + this.coursedata[i].total_hour - this.coursedata[i].teacher_hour
+          retTheory += this.coursedata[i].teacher_hour
+        }
+      }
     },
-    changePage(key) {
+    getDataByCouTag (tag) {
+      // 根据tag算出各个统计数据
+      let retCre = 0
+      let rethour = 0
+      let retExe = 0
+      let retTheory = 0
+      for (let i = 0; i < this.coursedata.length; i++) {
+        if (this.coursedata[i].tag.split(';').indexOf(tag) !== -1) {
+          retCre += this.coursedata[i].credits
+          rethour += this.coursedata[i].total_hour
+          retExe = retExe + this.coursedata[i].total_hour - this.coursedata[i].teacher_hour
+          retTheory += this.coursedata[i].teacher_hour
+        }
+      }
+      const ret = {
+        retCre: retCre
+        // ...retTheory,...retCre,...rethour
+      }
+      return ret// 把数据返回，渲染到组件上去.
+    },
+
+    tagChange_CLass () {
+      this.tagSelectView_Class = !this.tagSelectView_Class
+    },
+    tagChange_Model () {
+      this.tagSelectView_Model = !this.tagSelectView_Model
+    },
+    timeCacTag (tag) {
+      // 从后端查询所有的该tag的课程，加分返回数据
+      return 3
+    },
+    creCacTag (tag) {
+      return 5
+    },
+    changePage (key) {
       console.log(key)
-      this.showIndex=key;
-      console.log(this.showIndex+" is showIndex")
+      this.showIndex = key
+      console.log(this.showIndex + ' is showIndex')
     },
-    update(data){
-      alert('ok'+data)
+    update (data) {
+      alert('ok' + data)
     },
     // 初始化processedTreeData
     initProcessedTreeData (treeData, layerNumber) {
@@ -269,31 +321,29 @@ export default {
       //   {courseName: '语文', moduleName: '语文1', lessonName: '语文1-2'} ]
       export2Excel(columns, excelList, '培养计划', mergeArr)
     },
-    setNewCourse(Cparams)
-    {
-      this.$axios.post("http://trainingplan.rzcloud.online/startcourse",(Cparams))
-        .then(res=> {
-          //res.data.data
+    setNewCourse (Cparams) {
+      this.$axios.post('http://trainingplan.rzcloud.online/startcourse', (Cparams))
+        .then(res => {
+          // res.data.data
         })
         .catch(error => {
           console.log(error)
         })
     },
-    setNewModule(Mparams)
-    {
+    setNewModule (Mparams) {
 
     },
-    editCpar(cou_id,par_id){
-      const params={
-        "course_eid":cou_id,
-        "cou_parent_id":par_id
+    editCpar (cou_id, par_id) {
+      const params = {
+        'course_eid': cou_id,
+        'cou_parent_id': par_id
       }
-      this.$axios.post("http://trainingplan.rzcloud.online/dropcourse",(params))
-        .then(res=> {
-          //res.data.data
-          console.log("已将"+cou_id+"的父亲改为"+par_id)
+      this.$axios.post('http://trainingplan.rzcloud.online/dropcourse', (params))
+        .then(res => {
+          // res.data.data
+          console.log('已将' + cou_id + '的父亲改为' + par_id)
         })
-        .catch(error =>{
+        .catch(error => {
           console.log(error)
         })
     },
@@ -311,7 +361,7 @@ export default {
         })
     },
     getmodule () {
-      this.moduledata=[];
+      this.moduledata = []
       this.$axios({
         url: 'http://trainingplan.rzcloud.online/module',
         method: 'get'
@@ -321,8 +371,8 @@ export default {
           console.log(response.data.data)
           console.log('---------------------------')
           this.moduledata = response.data.data
-          console.log(typeof(this.moduledata)+" this is type")
-          console.log(this.moduledata.length+" i am length ")
+          console.log(typeof (this.moduledata) + ' this is type')
+          console.log(this.moduledata.length + ' i am length ')
           this.totree()
         })
         .catch(error => {
@@ -330,31 +380,34 @@ export default {
         })
     },
     totree () {
+      console.log("这里是totree方法",this.moduledata)
       for (let j = 0; j < this.moduledata.length; j++) {
         // this.moduledata[j]['classTable'] = []
-        this.moduledata[j]['classTable'] = this.moduledata[j]['lessonArr'];
-        this.moduledata[j]['childArr'] = [];
+        this.moduledata[j]['classTable'] = this.moduledata[j]['lessonArr']
+        this.moduledata[j]['childArr'] = []
+        this.moduledata[j]['tag'] = this.moduledata[j]['tag'].split(';')
+        this.moduledata[j]['inputVisible'] = false
+        this.moduledata[j]['inputValue'] = ''
+        for (let i = 0; i < this.moduledata[j]['tag'].length; i++) {
+          if (this.tagArr.indexOf(this.moduledata[j]['tag'][i]) === -1) { this.tagArr.push(this.moduledata[j]['tag'][i]) }
+        }
+
         // this.moduledata[j]['addCourseForm']={
         //  //把el-dialog绑定到这里
         // }
-        if(this.moduledata[j].lessonArr.length>0)
-        {
-          for(let i=0;i<this.moduledata[j].lessonArr.length;i++)
-          {
+        if (this.moduledata[j].lessonArr.length > 0) {
+          for (let i = 0; i < this.moduledata[j].lessonArr.length; i++) {
             this.moduledata[j].lessonArr[i]['normal'] = true
             this.moduledata[j].lessonArr[i]['editable'] = false
             this.moduledata[j].lessonArr[i]['delview'] = false
-            //tag在这里处理
-            // this.moduledata[j].lessonArr[i]['tag']=this.moduledata[j].lessonArr[i]['tag'].split(';')
-            //把"tag":"favarite;hate"转变成"tag":[favarate,hate]的数组。
-            //删除的时候发请求+在这里删除页面上显示。
-
+            // tag在这里处理
+            this.moduledata[j].lessonArr[i]['tag'] = this.moduledata[j].lessonArr[i]['tag'].split(';')
+            // 把"tag":"favarite;hate"转变成"tag":[favarate,hate]的数组。
+            // 删除的时候发请求+在这里删除页面上显示。
           }
-
         }
 
-
-        this.moduledata[j]['fromshow'] = false;//dialog无法连接到这里，因为是多个嵌套的复杂原因
+        this.moduledata[j]['fromshow'] = false// dialog无法连接到这里，因为是多个嵌套的复杂原因
       }
 
       for (let i = 0; i < this.moduledata.length; i++) {
@@ -368,35 +421,28 @@ export default {
         )
         this.moduledata[i]['childcredits'] = allcredits
         this.moduledata[i]['childtime'] = alltime
-        if (alltime > 0)
-          this.transferData(i, alltime, allcredits)
+        if (alltime > 0) { this.transferData(i, alltime, allcredits) }
       }// 将每个模块的分数上传，仅仅是自己模块，不包括自己子模块的模块分，比如计算机科学与技术就是0
-
 
       console.log('+++++++++++这是修改过后的数据，但没有形成树状结构+++++++++++++++')
       console.log(this.moduledata)
       console.log('++++++++++++++++++++++++++')
-      if(this.moduledata[0]!==null)
-	      this.testdata.push(this.moduledata[0])
-      console.log(this.moduledata[0]+"这就是第一个treedata")
-	  this.treeData = this.getChildTreeData(this.moduledata, this.testdata)
+      if (this.moduledata[0] !== null) { this.testdata.push(this.moduledata[0]) }
+      console.log(this.moduledata[0] + '这就是第一个treedata')
+      this.treeData = this.getChildTreeData(this.moduledata, this.testdata)
 
-	  // this.treeData = this.testdata
+      // this.treeData = this.testdata
       console.log('******这是形成的树形结构******')
       console.log(this.treeData)
       console.log('************')
 
-
-      console.log("**************************")
+      console.log('**************************')
       console.log(this.treeData)
-      console.log("------------------------")
-      return
+      console.log('------------------------')
     },
-    findNumner(n){
-      for(let i=0;i<this.moduledata.length;i++)
-      {
-        if(this.moduledata[i].module_eid===n)
-          return i;
+    findNumner (n) {
+      for (let i = 0; i < this.moduledata.length; i++) {
+        if (this.moduledata[i].module_eid === n) { return i }
       }
     },
     unique (arr) {
@@ -404,9 +450,7 @@ export default {
     },
     transferData (index, addtime, addcredits) {
       let parid = this.moduledata[index].mod_parent_id
-      if (parid === null)
-        return;
-      else {
+      if (parid === null) {} else {
         let par_mod_id
         for (let j = 0; j < this.moduledata.length; j++) {
           if (this.moduledata[j].module_eid === parid) {
@@ -434,7 +478,10 @@ export default {
               classTable: item2.classTable,
               childArr: item2.childArr,
               childcredits: item2.childcredits,
-              childtime: item2.childtime
+              childtime: item2.childtime,
+              tag: item2.tag,
+              inputVisible: false,
+              inputValue: ''
             })
           }
         })
@@ -447,440 +494,484 @@ export default {
   },
   data () {
     return {
-      drop:{
-        dropmodule:{
-          module_eid:0,
+      firstPosition_Class: {
+      right: 100,
+        top: 50
+      },
+      firstPosition_Model: {
+        right: 100,
+        top: -150
+      },
+      tagSelectView_Model: false,
+      tagSelectView_Class: false,
+      treeData_Tag_Class: {},
+      treeData_Tag_Model: {},
+      tagFlag_Class: false,
+      tagFlag_Model: false,
+      // tagArr: ['必修课', '选修课', '体育课', '通识课', '勾八课', '体育课', '篮球课', '足球课', '羽毛球课', '乒乓球课', '网球课', '跆拳道课', '健身课', '游泳课', '舞蹈课', '其他体育课', '其他课'],
+      tagArr: [],
+      drop: {
+        dropmodule: {
+          module_eid: 0,
           mod_parent_id: 0
         },
-        dropcourse:{
+        dropcourse: {
           course_eid: 0,
           cou_parent_id: 0
         }
       },
-      allTags:['a','b','c','f','g','r'],//记录所有的tag值
-      showIndex:2,
+      allTags: ['a', 'b', 'c', 'f', 'g', 'r'], // 记录所有的tag值
+      showIndex: 2,
       testdata: [],
       moduledata: [
         {
-          "module_eid": 1,
-          "name": "计算机科学与技术",
-          "mod_parent_id": null,
-          "expect_score": null,
-          "lessonArr": []
+          'module_eid': 1,
+          'name': '计算机科学与技术',
+          'mod_parent_id': null,
+          'expect_score': null,
+          'lessonArr': [],
+          'tag': '必修课;选修课'
         },
         {
-          "module_eid": 2,
-          "name": "通识公共课",
-          "mod_parent_id": 1,
-          "expect_score": null,
-          "lessonArr": []
+          'module_eid': 2,
+          'name': '通识公共课',
+          'mod_parent_id': 1,
+          'expect_score': null,
+          'lessonArr': [],
+          'tag': '必修课;通识课'
         },
         {
-          "module_eid": 3,
-          "name": "学科专业课",
-          "mod_parent_id": 1,
-          "expect_score": null,
-          "lessonArr": []
+          'module_eid': 3,
+          'name': '学科专业课',
+          'mod_parent_id': 1,
+          'expect_score': null,
+          'lessonArr': [],
+          'tag': '篮球课;体育课'
         },
         {
-          "module_eid": 4,
-          "name": "实践教学环节",
-          "mod_parent_id": 1,
-          "expect_score": null,
-          "lessonArr": []
+          'module_eid': 4,
+          'name': '实践教学环节',
+          'mod_parent_id': 1,
+          'expect_score': null,
+          'lessonArr': [],
+          'tag': '必修课;篮球课'
         },
         {
-          "module_eid": 5,
-          "name": "专业课",
-          "mod_parent_id": 1,
-          "expect_score": null,
-          "lessonArr": []
+          'module_eid': 5,
+          'name': '专业课',
+          'mod_parent_id': 1,
+          'expect_score': null,
+          'lessonArr': [],
+          'tag': '必修课;足球课'
         },
         {
-          "module_eid": 6,
-          "name": "课外教育项目",
-          "mod_parent_id": 1,
-          "expect_score": null,
-          "lessonArr": []
+          'module_eid': 6,
+          'name': '课外教育项目',
+          'mod_parent_id': 1,
+          'expect_score': null,
+          'lessonArr': [],
+          'tag': '必修课;选修课'
         },
         {
-          "module_eid": 7,
-          "name": "通识必修",
-          "mod_parent_id": 2,
-          "expect_score": null,
-          "lessonArr": []
+          'module_eid': 7,
+          'name': '通识必修',
+          'mod_parent_id': 2,
+          'expect_score': null,
+          'lessonArr': [],
+          'tag': '必修课;篮球课'
         },
         {
-          "module_eid": 8,
-          "name": "学科必修",
-          "mod_parent_id": 3,
-          "expect_score": null,
-          "lessonArr": []
+          'module_eid': 8,
+          'name': '学科必修',
+          'mod_parent_id': 3,
+          'expect_score': null,
+          'lessonArr': [],
+          'tag': '必修课;选修课'
         },
         {
-          "module_eid": 9,
-          "name": "实践必修",
-          "mod_parent_id": 4,
-          "expect_score": null,
-          "lessonArr": []
+          'module_eid': 9,
+          'name': '实践必修',
+          'mod_parent_id': 4,
+          'expect_score': null,
+          'lessonArr': [],
+          'tag': '必修课;足球课'
         },
         {
-          "module_eid": 11,
-          "name": "专业选修",
-          "mod_parent_id": 5,
-          "expect_score": null,
-          "lessonArr": []
+          'module_eid': 11,
+          'name': '专业选修',
+          'mod_parent_id': 5,
+          'expect_score': null,
+          'lessonArr': [],
+          'tag': '健身课;跆拳道课'
         },
         {
-          "module_eid": 12,
-          "name": "课外教育项目",
-          "mod_parent_id": 6,
-          "expect_score": null,
-          "lessonArr": []
+          'module_eid': 12,
+          'name': '课外教育项目',
+          'mod_parent_id': 6,
+          'expect_score': null,
+          'lessonArr': [],
+          'tag': '必修课;选修课'
         },
         {
-          "module_eid": 13,
-          "name": "35学分",
-          "mod_parent_id": 7,
-          "expect_score": null,
-          "lessonArr": [
+          'tag': '创新课;实践课',
+          'module_eid': 13,
+          'name': '35学分',
+          'mod_parent_id': 7,
+          'expect_score': null,
+          'lessonArr': [
             {
-              "tag":"必修课程;通识必修",
-              "code": "A2301210",
-              "name": "中国近现代史纲领",
-              "englishName": "The Outline of Modern and Contemporary History of China",
-              "credits": "3",
-              "total_hour": "48",
-              "teacher_hour": "42",
-              "practice_hour": "6",
-              "experiment_hour": "",
-              "in_class": "",
-              "out_class": "",
-              "term": "2",
-              "exam": "Y",
-              "start": "1月16日",
-              "remark": "",
-              "cou_parent_id": 13
+              'tag': '必修课程;通识必修',
+              'code': 'A2301210',
+              'name': '中国近现代史纲领',
+              'englishName': 'The Outline of Modern and Contemporary History of China',
+              'credits': '3',
+              'total_hour': '48',
+              'teacher_hour': '42',
+              'practice_hour': '6',
+              'experiment_hour': '',
+              'in_class': '',
+              'out_class': '',
+              'term': '2',
+              'exam': 'Y',
+              'start': '1月16日',
+              'remark': '',
+              'cou_parent_id': 13
             },
             {
-              "tag":"必修课程;通识必修",
-              "code": "A2301260",
-              "name": "思想道德与法治",
-              "englishName": "Ideological and  Moral Cultivation and Rule of Law",
-              "credits": "3",
-              "total_hour": "48",
-              "teacher_hour": "42",
-              "practice_hour": "6",
-              "experiment_hour": null,
-              "in_class": null,
-              "out_class": null,
-              "term": "1",
-              "exam": "Y",
-              "start": "1月16日",
-              "remark": null,
-              "cou_parent_id": 13
+              'tag': '必修课程;通识必修',
+              'code': 'A2301260',
+              'name': '思想道德与法治',
+              'englishName': 'Ideological and  Moral Cultivation and Rule of Law',
+              'credits': '3',
+              'total_hour': '48',
+              'teacher_hour': '42',
+              'practice_hour': '6',
+              'experiment_hour': null,
+              'in_class': null,
+              'out_class': null,
+              'term': '1',
+              'exam': 'Y',
+              'start': '1月16日',
+              'remark': null,
+              'cou_parent_id': 13
             },
             {
-              "tag":"必修课程;通识必修",
-              "code": "T1301011",
-              "name": "体育1",
-              "englishName": "Physical Education1",
-              "credits": "1",
-              "total_hour": "32",
-              "teacher_hour": "4",
-              "practice_hour": "28",
-              "experiment_hour": null,
-              "in_class": null,
-              "out_class": null,
-              "term": "1",
-              "exam": "C",
-              "start": "1月16日",
-              "remark": null,
-              "cou_parent_id": 13
-            },
+              'tag': '必修课程;通识必修',
+              'code': 'T1301011',
+              'name': '体育1',
+              'englishName': 'Physical Education1',
+              'credits': '1',
+              'total_hour': '32',
+              'teacher_hour': '4',
+              'practice_hour': '28',
+              'experiment_hour': null,
+              'in_class': null,
+              'out_class': null,
+              'term': '1',
+              'exam': 'C',
+              'start': '1月16日',
+              'remark': null,
+              'cou_parent_id': 13
+            }
 
           ]
         },
         {
-          "module_eid": 14,
-          "name": "13学分",
-          "mod_parent_id": 8,
-          "expect_score": null,
-          "lessonArr": [
+          'tag': '标记课;选修课',
+          'module_eid': 14,
+          'name': '13学分',
+          'mod_parent_id': 8,
+          'expect_score': null,
+          'lessonArr': [
             {
-              "tag":"必修课程;专业必修",
-              "code": "A0501180",
-              "name": "程序设计基础",
-              "englishName": "Basis of Programming",
-              "credits": "4",
-              "total_hour": "64",
-              "teacher_hour": "48",
-              "practice_hour": null,
-              "experiment_hour": null,
-              "in_class": "16",
-              "out_class": null,
-              "term": "1",
-              "exam": "X",
-              "start": "1月16日",
-              "remark": null,
-              "cou_parent_id": 14
+              'tag': '必修课程;专业必修',
+              'code': 'A0501180',
+              'name': '程序设计基础',
+              'englishName': 'Basis of Programming',
+              'credits': '4',
+              'total_hour': '64',
+              'teacher_hour': '48',
+              'practice_hour': null,
+              'experiment_hour': null,
+              'in_class': '16',
+              'out_class': null,
+              'term': '1',
+              'exam': 'X',
+              'start': '1月16日',
+              'remark': null,
+              'cou_parent_id': 14
             },
             {
-              "tag":"必修课程;专业必修",
-              "code": "A0512020",
-              "name": "计算机类学科导论",
-              "englishName": "Introduction to Computer Science",
-              "credits": "1",
-              "total_hour": "16",
-              "teacher_hour": "16",
-              "practice_hour": null,
-              "experiment_hour": null,
-              "in_class": null,
-              "out_class": null,
-              "term": "1",
-              "exam": "C",
-              "start": "1月16日",
-              "remark": null,
-              "cou_parent_id": 14
-            },
+              'tag': '必修课程;专业必修',
+              'code': 'A0512020',
+              'name': '计算机类学科导论',
+              'englishName': 'Introduction to Computer Science',
+              'credits': '1',
+              'total_hour': '16',
+              'teacher_hour': '16',
+              'practice_hour': null,
+              'experiment_hour': null,
+              'in_class': null,
+              'out_class': null,
+              'term': '1',
+              'exam': 'C',
+              'start': '1月16日',
+              'remark': null,
+              'cou_parent_id': 14
+            }
 
           ]
         },
         {
-          "module_eid": 15,
-          "name": "1学分",
-          "mod_parent_id": 9,
-          "expect_score": null,
-          "lessonArr": []
+          'tag': '必修课;选修课',
+          'module_eid': 15,
+          'name': '1学分',
+          'mod_parent_id': 9,
+          'expect_score': null,
+          'lessonArr': []
         },
         {
-          "module_eid": 16,
-          "name": "25.5学分",
-          "mod_parent_id": 7,
-          "expect_score": null,
-          "lessonArr": [
+          'tag': '必修课;选修课',
+          'module_eid': 16,
+          'name': '25.5学分',
+          'mod_parent_id': 7,
+          'expect_score': null,
+          'lessonArr': [
             {
-              "tag":"必修课程;通识必修",
-              "code": "A2301240",
-              "name": "马克思主义基本原理",
-              "englishName": "Basic Principles of Marxism",
-              "credits": "3",
-              "total_hour": "48",
-              "teacher_hour": "42",
-              "practice_hour": "6",
-              "experiment_hour": null,
-              "in_class": null,
-              "out_class": null,
-              "term": "6",
-              "exam": "Y",
-              "start": "1月16日",
-              "remark": null,
-              "cou_parent_id": 16
+              'tag': '必修课程;通识必修',
+              'code': 'A2301240',
+              'name': '马克思主义基本原理',
+              'englishName': 'Basic Principles of Marxism',
+              'credits': '3',
+              'total_hour': '48',
+              'teacher_hour': '42',
+              'practice_hour': '6',
+              'experiment_hour': null,
+              'in_class': null,
+              'out_class': null,
+              'term': '6',
+              'exam': 'Y',
+              'start': '1月16日',
+              'remark': null,
+              'cou_parent_id': 16
             },
             {
-              "tag":"必修课程;通识必修",
-              "code": "T1301013",
-              "name": "体育3",
-              "englishName": "Physical Education3",
-              "credits": "1",
-              "total_hour": "32",
-              "teacher_hour": "4",
-              "practice_hour": "28",
-              "experiment_hour": null,
-              "in_class": null,
-              "out_class": null,
-              "term": "3",
-              "exam": "C",
-              "start": "1月16日",
-              "remark": null,
-              "cou_parent_id": 16
-            },
+              'tag': '必修课程;通识必修',
+              'code': 'T1301013',
+              'name': '体育3',
+              'englishName': 'Physical Education3',
+              'credits': '1',
+              'total_hour': '32',
+              'teacher_hour': '4',
+              'practice_hour': '28',
+              'experiment_hour': null,
+              'in_class': null,
+              'out_class': null,
+              'term': '3',
+              'exam': 'C',
+              'start': '1月16日',
+              'remark': null,
+              'cou_parent_id': 16
+            }
 
           ]
         },
         {
-          "module_eid": 17,
-          "name": "16学分",
-          "mod_parent_id": 8,
-          "expect_score": null,
-          "lessonArr": [
+          'tag': '必修课;选修课',
+          'module_eid': 17,
+          'name': '16学分',
+          'mod_parent_id': 8,
+          'expect_score': null,
+          'lessonArr': [
             {
-              "tag":"必修课程;专业必修",
-              "code": "A0512040",
-              "name": "计算机网络",
-              "englishName": "Computer Network ",
-              "credits": "4",
-              "total_hour": "64",
-              "teacher_hour": "64",
-              "practice_hour": null,
-              "experiment_hour": null,
-              "in_class": null,
-              "out_class": null,
-              "term": "5",
-              "exam": "X",
-              "start": "1月16日",
-              "remark": null,
-              "cou_parent_id": 17
+              'tag': '必修课程;专业必修',
+              'code': 'A0512040',
+              'name': '计算机网络',
+              'englishName': 'Computer Network ',
+              'credits': '4',
+              'total_hour': '64',
+              'teacher_hour': '64',
+              'practice_hour': null,
+              'experiment_hour': null,
+              'in_class': null,
+              'out_class': null,
+              'term': '5',
+              'exam': 'X',
+              'start': '1月16日',
+              'remark': null,
+              'cou_parent_id': 17
             }
           ]
         },
         {
-          "module_eid": 20,
-          "name": "物联网工程模块",
-          "mod_parent_id": 11,
-          "expect_score": null,
-          "lessonArr": [
+          'tag': '必修课;选修课',
+          'module_eid': 20,
+          'name': '物联网工程模块',
+          'mod_parent_id': 11,
+          'expect_score': null,
+          'lessonArr': [
             {
-              "tag":"必修课程;专业必修",
-              "code": "B050801s",
-              "name": "物联网工程导论",
-              "englishName": "Introduction to IoT Enginneering ",
-              "credits": "2",
-              "total_hour": "32",
-              "teacher_hour": "32",
-              "practice_hour": null,
-              "experiment_hour": null,
-              "in_class": null,
-              "out_class": null,
-              "term": "3",
-              "exam": "C",
-              "start": "1月16日",
-              "remark": "双语",
-              "cou_parent_id": 20
+              'tag': '必修课程;专业必修',
+              'code': 'B050801s',
+              'name': '物联网工程导论',
+              'englishName': 'Introduction to IoT Enginneering ',
+              'credits': '2',
+              'total_hour': '32',
+              'teacher_hour': '32',
+              'practice_hour': null,
+              'experiment_hour': null,
+              'in_class': null,
+              'out_class': null,
+              'term': '3',
+              'exam': 'C',
+              'start': '1月16日',
+              'remark': '双语',
+              'cou_parent_id': 20
             },
             {
-              "tag":"必修课程;专业必修",
-              "code": "B050816s",
-              "name": "传感器与传感网",
-              "englishName": "Sensor and Sensor Networks",
-              "credits": "2",
-              "total_hour": "32",
-              "teacher_hour": "16",
-              "practice_hour": null,
-              "experiment_hour": "16",
-              "in_class": null,
-              "out_class": null,
-              "term": "4",
-              "exam": "C",
-              "start": "1月16日",
-              "remark": "双语",
-              "cou_parent_id": 20
+              'tag': '必修课程;专业必修',
+              'code': 'B050816s',
+              'name': '传感器与传感网',
+              'englishName': 'Sensor and Sensor Networks',
+              'credits': '2',
+              'total_hour': '32',
+              'teacher_hour': '16',
+              'practice_hour': null,
+              'experiment_hour': '16',
+              'in_class': null,
+              'out_class': null,
+              'term': '4',
+              'exam': 'C',
+              'start': '1月16日',
+              'remark': '双语',
+              'cou_parent_id': 20
             }
           ]
         },
         {
-          "module_eid": 21,
-          "name": "人工智能模块",
-          "mod_parent_id": 11,
-          "expect_score": null,
-          "lessonArr": [
+          'tag': '必修课;选修课',
+          'module_eid': 21,
+          'name': '人工智能模块',
+          'mod_parent_id': 11,
+          'expect_score': null,
+          'lessonArr': [
             {
-              "tag":"必修课程;专业选修",
-              "code": "B0501540",
-              "name": "人工智能导论",
-              "englishName": "Introduction to Artificial Intelligence",
-              "credits": "2",
-              "total_hour": "32",
-              "teacher_hour": "32",
-              "practice_hour": null,
-              "experiment_hour": null,
-              "in_class": null,
-              "out_class": "24",
-              "term": "3",
-              "exam": "C",
-              "start": "1月16日",
-              "remark": null,
-              "cou_parent_id": 21
+              'tag': '必修课程;专业选修',
+              'code': 'B0501540',
+              'name': '人工智能导论',
+              'englishName': 'Introduction to Artificial Intelligence',
+              'credits': '2',
+              'total_hour': '32',
+              'teacher_hour': '32',
+              'practice_hour': null,
+              'experiment_hour': null,
+              'in_class': null,
+              'out_class': '24',
+              'term': '3',
+              'exam': 'C',
+              'start': '1月16日',
+              'remark': null,
+              'cou_parent_id': 21
             },
             {
-              "tag":"必修课程;专业选修",
-              "code": "B050155s",
-              "name": "机器学习",
-              "englishName": "Machine Learning",
-              "credits": "2",
-              "total_hour": "32",
-              "teacher_hour": "32",
-              "practice_hour": null,
-              "experiment_hour": null,
-              "in_class": null,
-              "out_class": "24",
-              "term": "4",
-              "exam": "C",
-              "start": "1月16日",
-              "remark": "双语",
-              "cou_parent_id": 21
+              'tag': '必修课程;专业选修',
+              'code': 'B050155s',
+              'name': '机器学习',
+              'englishName': 'Machine Learning',
+              'credits': '2',
+              'total_hour': '32',
+              'teacher_hour': '32',
+              'practice_hour': null,
+              'experiment_hour': null,
+              'in_class': null,
+              'out_class': '24',
+              'term': '4',
+              'exam': 'C',
+              'start': '1月16日',
+              'remark': '双语',
+              'cou_parent_id': 21
             }
           ]
         },
         {
-          "module_eid": 22,
-          "name": "数据科学模块",
-          "mod_parent_id": 11,
-          "expect_score": null,
-          "lessonArr": []
+          'tag': '必修课;选修课',
+          'module_eid': 22,
+          'name': '数据科学模块',
+          'mod_parent_id': 11,
+          'expect_score': null,
+          'lessonArr': []
         },
         {
-          "module_eid": 23,
-          "name": "网络安全模块",
-          "mod_parent_id": 11,
-          "expect_score": null,
-          "lessonArr": []
+          'tag': '必修课;选修课',
+          'module_eid': 23,
+          'name': '网络安全模块',
+          'mod_parent_id': 11,
+          'expect_score': null,
+          'lessonArr': []
         },
         {
-          "module_eid": 24,
-          "name": "公共模块",
-          "mod_parent_id": 11,
-          "expect_score": null,
-          "lessonArr": []
+          'tag': '必修课;选修课',
+          'module_eid': 24,
+          'name': '公共模块',
+          'mod_parent_id': 11,
+          'expect_score': null,
+          'lessonArr': []
         },
         {
-          "module_eid": 25,
-          "name": "31.5学分",
-          "mod_parent_id": 9,
-          "expect_score": null,
-          "lessonArr": []
+          'tag': '必修课;选修课',
+          'module_eid': 25,
+          'name': '31.5学分',
+          'mod_parent_id': 9,
+          'expect_score': null,
+          'lessonArr': []
         },
         {
-          "module_eid": 26,
-          "name": "7学分",
-          "mod_parent_id": 12,
-          "expect_score": null,
-          "lessonArr": []
+          'tag': '必修课;选修课',
+          'module_eid': 26,
+          'name': '7学分',
+          'mod_parent_id': 12,
+          'expect_score': null,
+          'lessonArr': []
         },
         {
-          "module_eid": 27,
-          "name": "通识选修",
-          "mod_parent_id": 2,
-          "expect_score": null,
-          "lessonArr": []
+          'tag': '必修课;选修课',
+          'module_eid': 27,
+          'name': '通识选修',
+          'mod_parent_id': 2,
+          'expect_score': null,
+          'lessonArr': []
         },
         {
-          "module_eid": 28,
-          "name": "3学分",
-          "mod_parent_id": 27,
-          "expect_score": null,
-          "lessonArr": []
+          'tag': '必修课;选修课',
+          'module_eid': 28,
+          'name': '3学分',
+          'mod_parent_id': 27,
+          'expect_score': null,
+          'lessonArr': []
         },
         {
-          "module_eid": 29,
-          "name": "通识选修课",
-          "mod_parent_id": 1,
-          "expect_score": null,
-          "lessonArr": []
+          'tag': '必修课;选修课',
+          'module_eid': 29,
+          'name': '通识选修课',
+          'mod_parent_id': 1,
+          'expect_score': null,
+          'lessonArr': []
         },
         {
-          "module_eid": 30,
-          "name": "10学分",
-          "mod_parent_id": 27,
-          "expect_score": null,
-          "lessonArr": []
+          'tag': '必修课;选修课',
+          'module_eid': 30,
+          'name': '10学分',
+          'mod_parent_id': 27,
+          'expect_score': null,
+          'lessonArr': []
         },
         {
-          "module_eid": 84,
-          "name": "16学分",
-          "mod_parent_id": 32,
-          "expect_score": 0,
-          "lessonArr": []
+          'tag': '必修课;选修课',
+          'module_eid': 84,
+          'name': '16学分',
+          'mod_parent_id': 32,
+          'expect_score': 0,
+          'lessonArr': []
         }
       ],
       treeData: [
@@ -892,9 +983,9 @@ export default {
           name: '计算机科学与技术',
           classTable: [
             {
-              inputVisible:false,
-              inputValue:'',
-              tag:['a','b'],
+              inputVisible: false,
+              inputValue: '',
+              tag: ['a', 'b'],
               normal: true, // 标记是否为标准课程
               editable: false, // 标记当前是否可编辑
               module_eid: 13,
@@ -921,9 +1012,9 @@ export default {
               cou_parent_id: 13 // 课程父级目录id
             },
             {
-              inputVisible:false,
-              inputValue:'',
-              tag:['a','c'],
+              inputVisible: false,
+              inputValue: '',
+              tag: ['a', 'c'],
               editable: false,
               normal: true,
               module_eid: 13,
@@ -949,9 +1040,9 @@ export default {
               cou_parent_id: 13
             },
             {
-              inputVisible:false,
-              inputValue:'',
-              tag:['a','e'],
+              inputVisible: false,
+              inputValue: '',
+              tag: ['a', 'e'],
               editable: false,
               normal: true,
               module_eid: 13,
@@ -983,9 +1074,9 @@ export default {
               name: '专业必修1-1',
               classTable: [
                 {
-                  inputVisible:false,
-                  inputValue:'',
-                  tag:['f','g'],
+                  inputVisible: false,
+                  inputValue: '',
+                  tag: ['f', 'g'],
                   editable: false,
                   normal: true,
                   module_eid: 13,
@@ -1010,9 +1101,10 @@ export default {
                   on_group: null,
                   cou_parent_id: 13
                 },
-                {inputVisible:false,
-                  inputValue:'',
-                  tag:['f','e'],
+                {
+                  inputVisible: false,
+                  inputValue: '',
+                  tag: ['f', 'e'],
                   editable: false,
                   normal: true,
                   module_eid: 13,
@@ -1038,9 +1130,9 @@ export default {
                   cou_parent_id: 13
                 },
                 {
-                  inputVisible:false,
-                  inputValue:'',
-                  tag:['f','r'],
+                  inputVisible: false,
+                  inputValue: '',
+                  tag: ['f', 'r'],
                   editable: false,
                   normal: true,
                   module_eid: 13,
@@ -1073,9 +1165,9 @@ export default {
                   childArr: [],
                   classTable: [
                     {
-                      inputVisible:false,
-                      inputValue:'',
-                      tag:['f','g'],
+                      inputVisible: false,
+                      inputValue: '',
+                      tag: ['f', 'g'],
                       editable: false,
                       normal: true,
                       module_eid: 14,
@@ -1101,9 +1193,9 @@ export default {
                       cou_parent_id: 14
                     },
                     {
-                      inputVisible:false,
-                      inputValue:'',
-                      tag:['f','g'],
+                      inputVisible: false,
+                      inputValue: '',
+                      tag: ['f', 'g'],
                       editable: false,
                       normal: true,
                       module_eid: 14,
@@ -1128,16 +1220,16 @@ export default {
                       on_group: null,
                       cou_parent_id: 14
                     }
-                  ],
+                  ]
                 },
                 {
                   module_eid: 4,
                   name: '专业1-1-2',
                   classTable: [
                     {
-                      inputVisible:false,
-                      inputValue:'',
-                      tag:['f','g'],
+                      inputVisible: false,
+                      inputValue: '',
+                      tag: ['f', 'g'],
                       editable: false,
                       normal: true,
                       module_eid: 13,
@@ -1163,9 +1255,9 @@ export default {
                       cou_parent_id: 13
                     },
                     {
-                      inputVisible:false,
-                      inputValue:'',
-                      tag:['f','g'],
+                      inputVisible: false,
+                      inputValue: '',
+                      tag: ['f', 'g'],
                       normal: true,
                       editable: false,
                       module_eid: 13,
@@ -1192,9 +1284,9 @@ export default {
                       cou_parent_id: 13
                     },
                     {
-                      inputVisible:false,
-                      inputValue:'',
-                      tag:['f','g'],
+                      inputVisible: false,
+                      inputValue: '',
+                      tag: ['f', 'g'],
                       normal: true,
                       editable: false,
                       module_eid: 13,
@@ -1220,9 +1312,9 @@ export default {
                       cou_parent_id: 13
                     },
                     {
-                      inputVisible:false,
-                      inputValue:'',
-                      tag:['f','g'],
+                      inputVisible: false,
+                      inputValue: '',
+                      tag: ['f', 'g'],
                       normal: true,
                       editable: false,
                       module_eid: 13,
@@ -1255,9 +1347,9 @@ export default {
                       classTable: [],
                       childArr: []
                     }
-                  ],
+                  ]
                 }
-              ],
+              ]
             },
             {
               module_eid: 2,
@@ -1270,9 +1362,9 @@ export default {
                   childArr: [],
                   classTable: [
                     {
-                      inputVisible:false,
-                      inputValue:'',
-                      tag:['f','a'],
+                      inputVisible: false,
+                      inputValue: '',
+                      tag: ['f', 'a'],
                       normal: true,
                       module_eid: 14,
                       editable: false,
@@ -1298,9 +1390,9 @@ export default {
                       cou_parent_id: 14
                     },
                     {
-                      inputVisible:false,
-                      inputValue:'',
-                      tag:['f','a'],
+                      inputVisible: false,
+                      inputValue: '',
+                      tag: ['f', 'a'],
                       normal: true,
                       editable: false,
                       module_eid: 14,
@@ -1325,16 +1417,16 @@ export default {
                       on_group: null,
                       cou_parent_id: 14
                     }
-                  ],
+                  ]
                 },
                 {
                   module_eid: 7,
                   name: '选修1-2-2',
                   classTable: [
                     {
-                      inputVisible:false,
-                      inputValue:'',
-                      tag:['f','a'],
+                      inputVisible: false,
+                      inputValue: '',
+                      tag: ['f', 'a'],
                       normal: true,
                       editable: false,
                       module_eid: 14,
@@ -1360,8 +1452,8 @@ export default {
                       cou_parent_id: 14
                     },
                     {
-                      inputVisible:false,
-                      inputValue:'',
+                      inputVisible: false,
+                      inputValue: '',
                       normal: true,
                       editable: false,
                       module_eid: 14,
@@ -1386,11 +1478,11 @@ export default {
                       on_group: null,
                       cou_parent_id: 14
                     }
-                  ],
+                  ]
                 }
-              ],
+              ]
             }
-          ],
+          ]
         }
       ]
     }
