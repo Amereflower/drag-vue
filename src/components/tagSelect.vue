@@ -172,11 +172,12 @@ export default {
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
 
+}
+
 .hover-div-tag-select {
   width: 100%;
   height: 100%;
   object-fit: fill;
 }
 
-}
 </style>

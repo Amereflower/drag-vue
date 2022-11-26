@@ -207,7 +207,17 @@
 
                 <div class="static-credits"
                 >学分数
-                  <span class="static-b-num">{{ countcredit(item) }}</span>
+                  <span class="static-num">{{ countcredit(item) }}</span>
+                </div>
+
+                <div class="static-credits"
+                >理论学时数
+                  <span class="static-num">{{ countteach(item) }}</span>
+                </div>
+
+                <div class="static-credits"
+                >实践学时数
+                  <span class="static-num">{{countexper(item) }}</span>
                 </div>
                 <el-button icon="el-icon-s-data" slot="reference" size="small">统计</el-button>
               </el-popover>
@@ -703,6 +713,13 @@ export default {
     counttime(item) {
       return item.childtime
     },
+    countteach(item) {
+      return item.childteach
+    },
+    countexper(item) {
+      return item.childexper
+    },
+
     adddata(form) {
       //既要item也要from，
       const item = this.addCourseParentId
